@@ -91,11 +91,11 @@ class _HomeScreenState extends State<HomeScreen> {
 
                     // ================= OVERLAPPING CARD =================
                     Positioned(
-                      top: 150,
+                      top: 110,
                       left: 20,
                       right: 20,
                       child: Container(
-                        height: 320,
+                        height: 300,
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(40),
                           color: const Color(0xFF121927),
@@ -125,7 +125,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               // Content
                               Positioned.fill(
                                 child: Padding(
-                                  padding: EdgeInsets.all(20),
+                                  padding: EdgeInsets.all(16),
                                   child: Column(
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
@@ -139,8 +139,8 @@ class _HomeScreenState extends State<HomeScreen> {
                                         child: Row(
                                           mainAxisSize: MainAxisSize.min,
                                           children: [
-                                            Text("⚡", style: TextStyle(fontSize: 16)),
-                                            SizedBox(width: 6),
+                                            Text("⚡", style: TextStyle(fontSize: 14)),
+                                            SizedBox(width: 5),
                                             Text("Daily Goal: 1/3",
                                               style: TextStyle(
                                                 color: Colors.white,
@@ -151,7 +151,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                           ],
                                         ),
                                       ),
-                                      SizedBox(height: 24),
+                                      SizedBox(height: 8),
                                       Text("Ready for your\nnext mock?",
                                         style: TextStyle(
                                           color: Colors.white,
@@ -166,25 +166,38 @@ class _HomeScreenState extends State<HomeScreen> {
                                       SizedBox(height: 16),
                                       // Start Interview Button
                                       Container(
-                                        width: double.infinity,
-                                        height: 56,
                                         decoration: BoxDecoration(
-                                          color: Color(0xFFFFCC00),
                                           borderRadius: BorderRadius.circular(30),
-                                        ),
-                                        child: Row(
-                                          mainAxisAlignment: MainAxisAlignment.center,
-                                          children: [
-                                            Icon(Icons.play_arrow, color: Colors.black, size: 28),
-                                            SizedBox(width: 10),
-                                            Text("Start Interview",
-                                              style: TextStyle(
-                                                color: Colors.black,
-                                                fontSize: 18,
-                                                fontWeight: FontWeight.w900,
-                                              ),
+                                          boxShadow: [
+                                            BoxShadow(
+                                              color: Color(0xFFFFCC00).withOpacity(0.5),
+                                              blurRadius: 20,
+                                              spreadRadius: 2,
+                                              offset: Offset(0, 4),
                                             ),
                                           ],
+                                        ),
+                                        child: Container(
+                                          width: double.infinity,
+                                          height: 56,
+                                          decoration: BoxDecoration(
+                                            color: Color(0xFFFFCC00),
+                                            borderRadius: BorderRadius.circular(30),
+                                          ),
+                                          child: Row(
+                                            mainAxisAlignment: MainAxisAlignment.center,
+                                            children: [
+                                              Icon(Icons.play_arrow, color: Colors.black, size: 28),
+                                              SizedBox(width: 10),
+                                              Text("Start Interview",
+                                                style: TextStyle(
+                                                  color: Colors.black,
+                                                  fontSize: 18,
+                                                  fontWeight: FontWeight.w900,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
                                         ),
                                       ),
                                     ],
@@ -295,12 +308,20 @@ class _HomeScreenState extends State<HomeScreen> {
                         ],
                       ),
                       SizedBox(height: 12),
-                      Row(
-                        children: [
-                          Expanded(child: _buildCourseCard()),
-                          SizedBox(width: 12),
-                          Expanded(child: _buildCourseCard()),
-                        ],
+                      IntrinsicHeight(
+                        child: SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: List.generate(5, (index) =>
+                                Container(
+                                  width: 180,
+                                  margin: EdgeInsets.only(right: 12),
+                                  child: _buildCourseCard(),
+                                ),
+                            ),
+                          ),
+                        ),
                       ),
                       SizedBox(height: 24),
                     ],
