@@ -20,4 +20,5 @@ class Pathclass {
   static const String ic_home_Path = "${_iconPath}ic_home.svg";
   static const String ic_daily_goal_Path = "${_iconPath}ic_daily_goal.svg";
   static const String ic_chat_Path = "${_iconPath}ic_chat.svg";
+  static const String ic_logo_Path = "${_iconPath}ic_logo.png";
 }

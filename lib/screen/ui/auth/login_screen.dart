@@ -1,3 +1,7 @@
+import 'package:ai_interview/screen/ui/auth/email_verify.dart';
+import 'package:ai_interview/screen/ui/auth/password_forget/email_send_otp.dart';
+import 'package:ai_interview/screen/ui/bottom_nav.dart';
+import 'package:ai_interview/utils/pathclass.dart';
 import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
@@ -41,92 +45,49 @@ class _SignInScreenState extends State<SignInScreen> {
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 24),
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                // ── Skip button ──
+
+                const SizedBox(height: 48),
+
                 Align(
-                  alignment: Alignment.topRight,
-                  child: TextButton(
-                    onPressed: () {},
-                    child: const Text(
-                      'Skip',
-                      style: TextStyle(
-                        color: Color(0xFFFF6B35),
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
+                  alignment: Alignment.topLeft,
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // ── Welcome text ──
+                      const Text(
+                        'Welcome Back 👋',
+                        style: TextStyle(
+                          color: Color(0xFF1A1A1A),
+                          fontSize: 26,
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
-                    ),
+
+                      const Text(
+                        'Login to continue your interview practice',
+                        style: TextStyle(
+                          color: Color(0xFF888888),
+                          fontSize: 13,
+                        ),
+                      ),
+
+                    ],
+
                   ),
+
                 ),
 
-                const SizedBox(height: 8),
+                const SizedBox(height: 32),
 
-                // ── Mic icon ──
-                Container(
-                  width: 52,
-                  height: 52,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFFFEDE6),
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  child: const Icon(
-                    Icons.mic,
-                    color: Color(0xFFFF6B35),
-                    size: 26,
-                  ),
-                ),
 
-                const SizedBox(height: 12),
-
-                // ── App name ──
-                const Text(
-                  'PrepMaster',
-                  style: TextStyle(
-                    color: Color(0xFF333333),
-                    fontSize: 15,
-                    fontWeight: FontWeight.w600,
-                    letterSpacing: 0.3,
-                  ),
-                ),
-
-                const SizedBox(height: 10),
-
-                // ── Welcome text ──
-                const Text(
-                  'Welcome Back 👋',
-                  style: TextStyle(
-                    color: Color(0xFF1A1A1A),
-                    fontSize: 26,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-
-                const SizedBox(height: 6),
-
-                const Text(
-                  'Login to continue your interview practice',
-                  style: TextStyle(
-                    color: Color(0xFF888888),
-                    fontSize: 13,
-                  ),
-                ),
-
-                const SizedBox(height: 24),
 
                 // ── Illustration ──
-                Container(
-                  width: 180,
-                  height: 180,
-                  decoration: const BoxDecoration(
-                    color: Color(0xFFFFEDE6),
-                    shape: BoxShape.circle,
-                  ),
-                  child: ClipOval(
-                    child: Image.asset(
-                      'assets/icon/ic_login_illustration.png',
-                      fit: BoxFit.cover,
-                    ),
-                  ),
+
+                Image.asset(
+                  Pathclass.ic_logo_Path,
+                  fit: BoxFit.cover,
                 ),
 
                 const SizedBox(height: 32),
@@ -166,7 +127,13 @@ class _SignInScreenState extends State<SignInScreen> {
                 Align(
                   alignment: Alignment.centerRight,
                   child: TextButton(
-                    onPressed: () {},
+                    onPressed: () {
+                      debugPrint("Okay");
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => const Email_Send_OTP()),
+                      );
+                    },
                     style: TextButton.styleFrom(
                       padding: EdgeInsets.zero,
                       minimumSize: Size.zero,
@@ -189,7 +156,13 @@ class _SignInScreenState extends State<SignInScreen> {
                   width: double.infinity,
                   height: 52,
                   child: ElevatedButton(
-                    onPressed: () {},
+                    onPressed: () {
+
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => const BottomNavScreen()),
+                      );
+                    },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFFFF6B35),
                       foregroundColor: Colors.white,
@@ -282,7 +255,15 @@ class _SignInScreenState extends State<SignInScreen> {
                       ),
                     ),
                     GestureDetector(
-                      onTap: () {},
+                      onTap: () {
+
+                        Navigator.push(
+                          context,
+                            MaterialPageRoute(builder: (_) => const EmailVerifyScreen())
+                        );
+
+
+                      },
                       child: const Text(
                         'Sign Up',
                         style: TextStyle(

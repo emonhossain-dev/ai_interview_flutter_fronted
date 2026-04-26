@@ -1,5 +1,8 @@
+import 'package:ai_interview/screen/history_screen.dart';
+import 'package:ai_interview/screen/ui/chat_screen.dart';
 import 'package:ai_interview/screen/ui/home_screen.dart';
 import 'package:ai_interview/screen/ui/interview_all_screens/interviewCallScreen.dart';
+import 'package:ai_interview/screen/ui/profile_screen.dart';
 import 'package:ai_interview/utils/pathclass.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -15,10 +18,10 @@ class BottomNavScreen extends StatefulWidget {
 class _BottomNavScreenState extends State<BottomNavScreen> {
   List<Widget> _screen = [
     HomeScreen(),
+    ChatScreen(),
     InterviewCallScreen(),
-    HomeScreen(),
-    InterviewCallScreen(),
-    InterviewCallScreen(),
+    HistoryScreen(),
+    ProfileScreen(),
   ];
 
   int _selectedIndex = 0;
