@@ -1,3 +1,4 @@
+import 'package:ai_interview/screen/ui/auth/password_forget/otp_verify.dart';
 import 'package:flutter/material.dart';
 
 class Email_Send_OTP extends StatefulWidget {
@@ -31,9 +32,9 @@ class _Email_Send_OTPState extends State<Email_Send_OTP> {
     debugPrint('OTP sent to: $email');
 
     // Navigate to OTP verify screen
-    // Navigator.push(context, MaterialPageRoute(
-    //   builder: (_) => EmailVerifyScreen(email: email),
-    // ));
+    Navigator.push(context, MaterialPageRoute(
+       builder: (_) => OTPVerifyScreen(email: email),
+    ));
   }
 
   @override

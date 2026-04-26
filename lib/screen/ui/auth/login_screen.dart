@@ -1,8 +1,10 @@
 import 'package:ai_interview/screen/ui/auth/email_verify.dart';
 import 'package:ai_interview/screen/ui/auth/password_forget/email_send_otp.dart';
+import 'package:ai_interview/screen/ui/auth/password_forget/otp_verify.dart';
 import 'package:ai_interview/screen/ui/bottom_nav.dart';
 import 'package:ai_interview/utils/pathclass.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
 class SignInScreen extends StatefulWidget {
@@ -221,14 +223,12 @@ class _SignInScreenState extends State<SignInScreen> {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       // Google G icon manually
-                      RichText(
-                        text: const TextSpan(
-                          children: [
-                            TextSpan(text: 'G', style: TextStyle(color: Color(0xFF4285F4), fontSize: 20, fontWeight: FontWeight.w700)),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(width: 10),
+
+
+                      SvgPicture.asset(Pathclass.ic_google_logo_Path, height: 30,width: 30,),
+
+
+                      const SizedBox(width: 24),
                       const Text(
                         'Continue with Google',
                         style: TextStyle(
@@ -259,7 +259,7 @@ class _SignInScreenState extends State<SignInScreen> {
 
                         Navigator.push(
                           context,
-                            MaterialPageRoute(builder: (_) => const EmailVerifyScreen())
+                            MaterialPageRoute(builder: (_) => OTPVerifyScreen())
                         );
 
 
