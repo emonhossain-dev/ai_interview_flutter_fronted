@@ -1,39 +1,51 @@
+/*
 import 'package:flutter/material.dart';
+import 'dart:ui' as ui;
 
 class AvatarGlowBackground extends StatelessWidget {
   final Widget? child;
   final double size;
 
-  const AvatarGlowBackground({super.key, this.child, this.size = 220});
+  const AvatarGlowBackground({
+    super.key,
+    this.child,
+    this.size = 220,
+  });
 
   @override
   Widget build(BuildContext context) {
     return SizedBox(
       width: size,
       height: size,
-
       child: Stack(
         alignment: Alignment.center,
-        clipBehavior: Clip.none,
         children: [
-          CustomPaint(size: Size(size, size), painter: _GlowPainter()),
+          // ── Layer 1: Big blurred glow (feMorphology + feGaussianBlur) ──
+          CustomPaint(
+            size: Size(size, size),
+            painter: _GlowPainter(),
+          ),
+
+          // ── Layer 2: Solid purple circle (the actual circle in SVG) ──
           Container(
             width: size * 0.53,
             height: size * 0.53,
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: Color(0xFF4F44FF),
+              color: const Color(0xFF4F44FF),
             ),
           ),
+
+          // ── Layer 3: Child (avatar image, icon, etc.) ──
           if (child != null)
             Container(
               width: size * 0.53,
               height: size * 0.53,
               decoration: const BoxDecoration(
                 shape: BoxShape.circle,
-                color: Color(0xFF4F44FF),
+                color: Color(0xFF4F44FF), // stroke color
               ),
-              padding: const EdgeInsets.all(4),
+              padding: const EdgeInsets.all(6), // ← এই value বাড়ালে padding বাড়বে
               child: ClipOval(child: child),
             ),
         ],
@@ -42,11 +54,16 @@ class AvatarGlowBackground extends StatelessWidget {
   }
 }
 
+// ── CustomPainter: replicates feGaussianBlur glow ─────────
 class _GlowPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final center = Offset(size.width / 2, size.height / 2);
+
+    // Multiple layered blurs to simulate feGaussianBlur stdDeviation=51.95
+    // + feMorphology radius=133 (spread)
     final glowColor = const Color(0xFF3E32FF).withOpacity(0.12);
+
     for (int i = 5; i >= 1; i--) {
       final radius = size.width * 0.2 + (i * size.width * 0.08);
       final paint = Paint()
@@ -54,6 +71,8 @@ class _GlowPainter extends CustomPainter {
         ..maskFilter = MaskFilter.blur(BlurStyle.normal, size.width * 0.14);
       canvas.drawCircle(center, radius, paint);
     }
+
+    // Core brighter glow ring just outside the circle
     final corePaint = Paint()
       ..color = const Color(0xFF4F44FF).withOpacity(0.22)
       ..maskFilter = MaskFilter.blur(BlurStyle.normal, size.width * 0.10);
@@ -63,6 +82,10 @@ class _GlowPainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
+
+// ─────────────────────────────────────────────────────────
+//  AIProfileCard  — full card with glow bg + avatar + text
+// ─────────────────────────────────────────────────────────
 
 class AIProfileCard extends StatelessWidget {
   final String name;
@@ -78,23 +101,23 @@ class AIProfileCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final screenHeight = MediaQuery.of(context).size.height;
-    final glowSize = screenHeight * 0.22;
-    final topPadding = screenHeight * 0.01;
+    const double glowSize = 280;
+    const double topPadding = 50; // ← বাড়ালে নিচে নামবে, কমালে উপরে যাবে
+    const double cardHeight = glowSize + topPadding + 60;
 
     return SizedBox(
       width: double.infinity,
-      height: topPadding + glowSize * 0.85 + 50, // ✅ Stack এর জন্য fixed height দরকার
+      height: cardHeight,
       child: Stack(
-        clipBehavior: Clip.none,
         alignment: Alignment.topCenter,
         children: [
 
-          // ── Glow + Avatar (নিচে থাকবে) ──
+          // ── 1. Glow + Avatar ──
           Positioned(
-            top: topPadding,
+            top: topPadding, // AppBar থেকে দূরত্ব এখানে
             child: AvatarGlowBackground(
               size: glowSize,
+
               child: Image.asset(
                 imagePath,
                 fit: BoxFit.cover,
@@ -110,13 +133,12 @@ class AIProfileCard extends StatelessWidget {
             ),
           ),
 
-          // ── Name & Subtitle (glow এর উপরে overlap) ──
+          // ── 2. Name + Subtitle ──
           Positioned(
-            top: topPadding + glowSize * 0.80, // ← কমালে আরো উপরে উঠবে
+            top: topPadding + glowSize - 40,
             left: 0,
             right: 0,
             child: Column(
-              mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
                   name,
@@ -128,6 +150,7 @@ class AIProfileCard extends StatelessWidget {
                     letterSpacing: 0.3,
                   ),
                 ),
+                const SizedBox(height: 5),
                 Text(
                   subtitle,
                   textAlign: TextAlign.center,
@@ -145,4 +168,8 @@ class AIProfileCard extends StatelessWidget {
       ),
     );
   }
+
 }
+
+
+*/

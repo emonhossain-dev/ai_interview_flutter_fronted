@@ -4,12 +4,19 @@ import 'package:flutter/material.dart';
 
 import 'app.dart';
 
+/*
 void main() => runApp(
   DevicePreview(
     enabled: !kReleaseMode,
     builder: (context) => MyApp(), // Wrap your app
   ),
 );
+*/
+
+
+void main(){
+  runApp(MyApp());
+}
 
 
 
