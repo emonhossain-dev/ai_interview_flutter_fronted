@@ -47,5 +47,9 @@
 	<true/>
 	<key>NSCameraUsageDescription</key>
     <string>Camera needed for video call</string>
+    <key>NSMicrophoneUsageDescription</key>
+    <string>Microphone needed for interview</string>
+    <key>NSSpeechRecognitionUsageDescription</key>
+    <string>Speech recognition needed for interview</string>
 </dict>
 </plist>

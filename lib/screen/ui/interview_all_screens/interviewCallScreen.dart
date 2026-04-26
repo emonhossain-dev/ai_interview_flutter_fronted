@@ -2,8 +2,8 @@ import 'dart:async';
 import 'package:auto_size_text/auto_size_text.dart';
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
+import 'package:speech_to_text/speech_to_text.dart';
 import '../../widget/aIProfileCard.dart';
-import '../../widget/font_size_scalble.dart';
 
 class InterviewCallScreen extends StatefulWidget {
   const InterviewCallScreen({super.key});
@@ -22,6 +22,18 @@ class _InterviewCallScreenState extends State<InterviewCallScreen> {
   bool _cameraReady = false;
   bool _isCameraOn = true;
 
+  // ── Mic ──
+  bool _isMicOn = true;
+
+  // ── Speech ──
+  final SpeechToText _speechToText = SpeechToText();
+  bool _speechReady = false;
+  String _spokenText = '';
+  String _lastFinalText = '';
+
+  bool _isRestarting = false; // ← নতুন variable যোগ করো
+
+  // ── Camera Toggle ──
   Future<void> _toggleCamera() async {
     if (_isCameraOn) {
       await _cameraController?.pausePreview();
@@ -31,18 +43,82 @@ class _InterviewCallScreenState extends State<InterviewCallScreen> {
     setState(() => _isCameraOn = !_isCameraOn);
   }
 
-  @override
-  void initState() {
-    super.initState();
-    _recTimer = Timer.periodic(const Duration(milliseconds: 800), (_) {
-      setState(() => _recVisible = !_recVisible);
-    });
-    _initCamera(); // ← camera init
+  // ── Mic Toggle ──
+  Future<void> _toggleMic() async {
+    if (_isMicOn) {
+      _stopListening();
+    } else {
+      _lastFinalText = ''; // ← reset
+      _spokenText = '';
+      if (_speechReady) _startListening();
+    }
+    setState(() => _isMicOn = !_isMicOn);
   }
 
+
+
+  void _onSpeechStatus(String status) {
+    if ((status == 'done' || status == 'notListening') && !_isRestarting) {
+      if (_isMicOn && _speechReady && mounted) {
+        _isRestarting = true;
+        _speechToText.stop();
+        Future.delayed(const Duration(milliseconds: 50), () { // ← মাত্র 50ms!
+          if (_isMicOn && mounted) {
+            _startListening();
+          }
+          _isRestarting = false;
+        });
+      }
+    }
+  }
+
+  void _startListening() {
+    _speechToText.listen(
+      onResult: (result) {
+        setState(() {
+          if (result.finalResult) {
+            _lastFinalText = (_lastFinalText + ' ' + result.recognizedWords).trim();
+            _spokenText = _lastFinalText;
+          } else {
+            _spokenText = (_lastFinalText + ' ' + result.recognizedWords).trim();
+          }
+        });
+      },
+      localeId: _selectedLang == 'BN'
+          ? 'bn_BD'
+          : _selectedLang == 'HI'
+          ? 'hi_IN'
+          : 'en_US',
+      listenMode: ListenMode.dictation,
+      pauseFor: const Duration(seconds: 60),
+      listenFor: const Duration(minutes: 10),
+      partialResults: true,
+    );
+  }
+
+
+
+
+
+  // ── Speech Stop ──
+  void _stopListening() {
+    _speechToText.stop();
+  }
+
+  // ── Speech Init ──
+
+  Future<void> _initSpeech() async {
+    _speechReady = await _speechToText.initialize(
+      onStatus: _onSpeechStatus,
+      onError: (error) => print('Speech error: $error'),
+      debugLogging: false, // ← sound/log বন্ধ
+    );
+    if (_speechReady && mounted) _startListening();
+  }
+
+  // ── Camera Init ──
   Future<void> _initCamera() async {
     final cameras = await availableCameras();
-    // ✅ front camera নেবে
     final front = cameras.firstWhere(
           (c) => c.lensDirection == CameraLensDirection.front,
       orElse: () => cameras.first,
@@ -57,9 +133,20 @@ class _InterviewCallScreenState extends State<InterviewCallScreen> {
   }
 
   @override
+  void initState() {
+    super.initState();
+    _recTimer = Timer.periodic(const Duration(milliseconds: 800), (_) {
+      setState(() => _recVisible = !_recVisible);
+    });
+    _initCamera();
+    _initSpeech();
+  }
+
+  @override
   void dispose() {
     _recTimer.cancel();
-    _cameraController?.dispose(); // ← dispose
+    _cameraController?.dispose();
+    _speechToText.stop();
     super.dispose();
   }
 
@@ -70,26 +157,15 @@ class _InterviewCallScreenState extends State<InterviewCallScreen> {
       body: SafeArea(
         child: Column(
           children: [
-
-            // ── App Bar ──
             _AppBar(),
-
-            // ── AI Profile Card ──
             AIProfileCard(
               name: 'Dr. Sarah (AI)',
               subtitle: 'Clinical Assessment',
               imagePath: 'assets/icon/ic_ai_avater.png',
             ),
-
-            // ── Question Box ──
             _QuestionBox(),
-
             const SizedBox(height: 10),
-
-            // ── "You" Video Card — Expanded দিয়ে বাকি সব জায়গা নেবে ──
             _your_video_live(),
-
-            // ── Bottom Bar ──
             Padding(
               padding: const EdgeInsets.only(left: 16, right: 16, bottom: 12),
               child: _BottomBar(context),
@@ -98,72 +174,65 @@ class _InterviewCallScreenState extends State<InterviewCallScreen> {
         ),
       ),
     );
-
   }
 
   Expanded _your_video_live() {
     return Expanded(
-            child: Padding(
-              padding: const EdgeInsets.only(left: 16, right: 16, bottom: 10),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(24),
-                child: Stack(
-                  fit: StackFit.expand,
-                  children: [
-
-                    // ✅ Camera ready হলে preview, না হলে placeholder
-                    _cameraReady && _isCameraOn
-                        ? SizedBox.expand(
-                      child: FittedBox(
-                        fit: BoxFit.cover,
-                        child: SizedBox(
-                          width: _cameraController!.value.previewSize!.height,
-                          height: _cameraController!.value.previewSize!.width,
-                          child: CameraPreview(_cameraController!),
-                        ),
-                      ),
-                    )
-                        : Container(
-                      color: const Color(0xFF1E1E2E),
-                      child: _cameraReady
-                          ? const Icon(Icons.videocam_off, color: Colors.white38, size: 50)
-                          : const Center(
-                        child: CircularProgressIndicator(color: Color(0xFF4F52D3)),
-                      ),
-                    ),
-
-                    // "You" label
-                    Positioned(
-                      bottom: 14,
-                      left: 14,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 10, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: Colors.black.withOpacity(0.5),
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: const Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(Icons.person, color: Colors.white, size: 14),
-                            SizedBox(width: 4),
-                            Text('You',
-                                style: TextStyle(
-                                    color: Colors.white, fontSize: 13)),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
+      child: Padding(
+        padding: const EdgeInsets.only(left: 16, right: 16, bottom: 10),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(24),
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              _cameraReady && _isCameraOn
+                  ? SizedBox.expand(
+                child: FittedBox(
+                  fit: BoxFit.cover,
+                  child: SizedBox(
+                    width: _cameraController!.value.previewSize!.height,
+                    height: _cameraController!.value.previewSize!.width,
+                    child: CameraPreview(_cameraController!),
+                  ),
+                ),
+              )
+                  : Container(
+                color: const Color(0xFF1E1E2E),
+                child: _cameraReady
+                    ? const Icon(Icons.videocam_off,
+                    color: Colors.white38, size: 50)
+                    : const Center(
+                  child: CircularProgressIndicator(
+                      color: Color(0xFF4F52D3)),
                 ),
               ),
-            ),
-          );
-
-
-
-
+              Positioned(
+                bottom: 14,
+                left: 14,
+                child: Container(
+                  padding:
+                  const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withOpacity(0.5),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.person, color: Colors.white, size: 14),
+                      SizedBox(width: 4),
+                      Text('You',
+                          style:
+                          TextStyle(color: Colors.white, fontSize: 13)),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   Widget _BottomBar(context) {
@@ -177,11 +246,13 @@ class _InterviewCallScreenState extends State<InterviewCallScreen> {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           _RoundIconButton(
-            // এটা করুন
             icon: _isCameraOn ? Icons.videocam : Icons.videocam_off,
             onTap: _toggleCamera,
           ),
-          _RoundIconButton(icon: Icons.mic, onTap: () {}),
+          _RoundIconButton(
+            icon: _isMicOn ? Icons.mic : Icons.mic_off,
+            onTap: _toggleMic,
+          ),
           _RoundIconButton(icon: Icons.more_vert, onTap: () {}),
           _EndCallButton(onTap: () => Navigator.pop(context)),
         ],
@@ -189,34 +260,32 @@ class _InterviewCallScreenState extends State<InterviewCallScreen> {
     );
   }
 
-
-
-
   Padding _QuestionBox() {
     return Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: const Color(0xFF1E1E2E),
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(
-                  color: const Color(0xFF4F52D3).withOpacity(0.6),
-                  width: 1.5,
-                ),
-              ),
-              child: AutoSizeText(
-                '"Could You describe your experience Could You describe your experience Could You describe your experience Could You describe your experience "',
-                maxLines: 3,
-                minFontSize: 8,
-                style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w400,
-                ),
-              ),
-            ),
-          );
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(
+          color: const Color(0xFF1E1E2E),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: const Color(0xFF4F52D3).withOpacity(0.6),
+            width: 1.5,
+          ),
+        ),
+        child: AutoSizeText(
+          _spokenText.isEmpty ? 'Listening...' : '"$_spokenText"',
+         // maxLines: 3,
+          minFontSize: 8,
+          style: const TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.w400,
+            height: 1.6,
+          ),
+        ),
+      ),
+    );
   }
 
   Widget _AppBar() {
@@ -228,7 +297,6 @@ class _InterviewCallScreenState extends State<InterviewCallScreen> {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            // REC indicator
             Row(
               children: [
                 AnimatedOpacity(
@@ -254,7 +322,6 @@ class _InterviewCallScreenState extends State<InterviewCallScreen> {
                 ),
               ],
             ),
-            // Language selector
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 3),
               decoration: BoxDecoration(
@@ -266,7 +333,14 @@ class _InterviewCallScreenState extends State<InterviewCallScreen> {
                 children: ['EN', 'BN', 'HI'].map((lang) {
                   final active = lang == _selectedLang;
                   return GestureDetector(
-                    onTap: () => setState(() => _selectedLang = lang),
+                    onTap: () {
+                      setState(() => _selectedLang = lang);
+                      // ── Language change এ listening restart ──
+                      if (_isMicOn && _speechReady) {
+                        _stopListening();
+                        _startListening();
+                      }
+                    },
                     child: AnimatedContainer(
                       duration: const Duration(milliseconds: 200),
                       padding: const EdgeInsets.symmetric(
@@ -298,9 +372,6 @@ class _InterviewCallScreenState extends State<InterviewCallScreen> {
     );
   }
 }
-
-// ── Bottom Bar ──────────────────────────────────────────────────────────────
-
 
 // ── Round Icon Button ───────────────────────────────────────────────────────
 class _RoundIconButton extends StatelessWidget {
