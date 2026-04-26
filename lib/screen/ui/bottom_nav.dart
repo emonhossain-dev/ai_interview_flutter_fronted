@@ -94,10 +94,15 @@ class _BottomNavScreenState extends State<BottomNavScreen> {
         );
 
       case 1:
-        return Icon(Icons.mic, color: color, size: 24);
+        return SvgPicture.asset(
+          Pathclass.ic_chat_Path,
+          width: 20,
+          height: 20,
+          colorFilter: ColorFilter.mode(color, BlendMode.srcIn),
+        );
 
       case 3:
-        return Icon(Icons.person, color: color, size: 24);
+        return Icon(Icons.folder, color: color, size: 24);
 
       case 4:
         return Icon(Icons.person, color: color, size: 24);
