@@ -1,3 +1,4 @@
+import 'package:ai_interview/screen/ui/interview_all_screens/interviewCallScreen.dart';
 import 'package:ai_interview/screen/ui/splash_screen.dart';
 import 'package:flutter/material.dart';
 
@@ -15,7 +16,7 @@ class MyApp extends StatelessWidget {
 
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
       ),
-      home: const BottomNavScreen(),
+      home: const InterviewCallScreen(),
     );
   }
 }

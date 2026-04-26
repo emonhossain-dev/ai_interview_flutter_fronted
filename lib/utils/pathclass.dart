@@ -11,6 +11,7 @@ class Pathclass {
   static const String bg_home_head = "${_basePathBackground}bg_home_head.svg";
   static const String bg_home_screen = "${_basePathBackground}bg_home_screen.svg";
   static const String bg_daily_goal = "${_basePathBackground}bg_daily_goal.svg";
+  static const String bg_ai_avater = "${_basePathBackground}bg_ai_avater.svg";
 
 
 
