@@ -1,11 +1,14 @@
 import 'package:ai_interview/screen/ui/auth/email_verify.dart';
 import 'package:ai_interview/screen/ui/auth/password_forget/email_send_otp.dart';
 import 'package:ai_interview/screen/ui/auth/password_forget/otp_verify.dart';
+import 'package:ai_interview/screen/ui/auth/sign_up_screen.dart';
 import 'package:ai_interview/screen/ui/bottom_nav.dart';
 import 'package:ai_interview/utils/pathclass.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+
+import '../../../Service/google_auth_service.dart';
 
 class SignInScreen extends StatefulWidget {
   const SignInScreen({super.key});
@@ -19,17 +22,43 @@ class _SignInScreenState extends State<SignInScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
 
+  final GoogleAuthService _auth = GoogleAuthService();
   final GoogleSignIn signIn = GoogleSignIn.instance;
 
-  Future<void> _handleGoogleSignIn() async {
+  /*Future<void> _handleGoogleSignIn() async {
     try {
       await GoogleSignIn.instance.initialize(clientId: null);
       await GoogleSignIn.instance.authenticate();
+      login();
       debugPrint('Google Sign In successful');
     } catch (e) {
       debugPrint('Google Sign In Error: $e');
     }
+  }*/
+
+
+  void login() async {
+    final user = await _auth.signIn();
+
+    if (user != null) {
+      print("Name: ${user.displayName}");
+      print("Email: ${user.email}");
+
+      await sendTokenToBackend(user);
+    }
   }
+
+  void logout() async {
+    await _auth.signOut();
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _auth.initGoogle(); // 👈 এখানে use করবে
+  }
+
+
 
   @override
   void dispose() {
@@ -160,10 +189,13 @@ class _SignInScreenState extends State<SignInScreen> {
                   child: ElevatedButton(
                     onPressed: () {
 
-                      Navigator.push(
+                      Navigator.pushReplacement(
                         context,
-                        MaterialPageRoute(builder: (context) => const BottomNavScreen()),
+                        MaterialPageRoute(
+                          builder: (_) => const BottomNavScreen(),
+                        ),
                       );
+
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFFFF6B35),
@@ -211,7 +243,10 @@ class _SignInScreenState extends State<SignInScreen> {
 
                 // ── Google button ──
                 OutlinedButton(
-                  onPressed: _handleGoogleSignIn,
+                  onPressed: (){
+                    debugPrint("Test");
+                    login();
+                    },
                   style: OutlinedButton.styleFrom(
                     side: const BorderSide(color: Color(0xFFDDDDDD)),
                     shape: RoundedRectangleBorder(
@@ -257,9 +292,11 @@ class _SignInScreenState extends State<SignInScreen> {
                     GestureDetector(
                       onTap: () {
 
-                        Navigator.push(
+                        Navigator.pushReplacement(
                           context,
-                            MaterialPageRoute(builder: (_) => OTPVerifyScreen())
+                          MaterialPageRoute(
+                            builder: (_) => const SignUpScreen(),
+                          ),
                         );
 
 

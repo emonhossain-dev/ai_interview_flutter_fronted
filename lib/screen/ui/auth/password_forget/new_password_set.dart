@@ -1,3 +1,4 @@
+import 'package:ai_interview/screen/ui/auth/login_screen.dart';
 import 'package:flutter/material.dart';
 
 class SetNewPasswordScreen extends StatefulWidget {
@@ -82,6 +83,15 @@ class _SetNewPasswordScreenState extends State<SetNewPasswordScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Password reset successfully!')),
     );
+
+
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(builder: (context) => SignInScreen()),
+          (route) => false,
+    );
+
+
   }
 
   @override
