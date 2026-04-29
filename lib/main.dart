@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import 'app.dart';
+import 'network/network_called.dart';
 
 /*
 void main() => runApp(
@@ -15,6 +16,7 @@ void main() => runApp(
 
 
 void main(){
+  NetworkCaller.init();
   runApp(MyApp());
 }
 

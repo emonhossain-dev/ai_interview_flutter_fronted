@@ -1,10 +1,13 @@
+import 'package:ai_interview/network/Api_URL.dart';
 import 'package:ai_interview/screen/ui/auth/email_verify.dart';
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
 import 'package:ai_interview/utils/pathclass.dart';
 
+import '../../../network/network_called.dart';
 import 'login_screen.dart';
 
 class SignUpScreen extends StatefulWidget {
@@ -21,6 +24,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
+  final _mobileController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
 
@@ -52,10 +56,12 @@ class _SignUpScreenState extends State<SignUpScreen> {
       debugPrint('Name: ${_nameController.text}');
       debugPrint('Email: ${_emailController.text}');
 
-      Navigator.push(
+      _registerAccount();
+
+     /* Navigator.push(
           context,
           MaterialPageRoute(builder: (_) => EmailVerifyScreen())
-      );
+      );*/
 
     }
   }
@@ -64,6 +70,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
   void dispose() {
     _nameController.dispose();
     _emailController.dispose();
+    _mobileController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
     super.dispose();
@@ -158,6 +165,26 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   ),
 
                   const SizedBox(height: 14),
+
+
+
+
+                  // ── mobile ──
+                  _ValidationInputField(
+                    controller: _mobileController,
+                    hint: 'Mobile Number',
+                    prefixIcon: Icons.person_outline,
+                    keyboardType: TextInputType.name,
+                    validator: (value) {
+                      if (value == null || value.trim().isEmpty) {
+                        return 'Please enter your Mobile Number';
+                      }
+                      return null;
+                    },
+                  ),
+
+                  const SizedBox(height: 14),
+
 
                   // ── Password ──
                   _ValidationInputField(
@@ -396,6 +423,32 @@ class _SignUpScreenState extends State<SignUpScreen> {
       ),
     );
   }
+
+  Future<bool> _registerAccount() async {
+    final response = await NetworkCaller.postForm(
+      "https://ai-interview-backend-python-1.onrender.com/register/",
+      {
+        "name": _nameController.text.trim(),
+        "email": _emailController.text.trim(),
+        "mobile": _mobileController.text.trim(),
+        "password": _passwordController.text.trim(),
+      },
+      requiresAuth: false,
+    );
+
+    if (response.isSuccess) {
+      debugPrint("✅ Registration Success");
+      return true;
+    } else {
+      debugPrint("❌ ${response.errorMessage}");
+      return false;
+    }
+  }
+
+
+
+
+
 }
 
 // ── Reusable Validated Input Field ────────────────────────────────────────
@@ -492,4 +545,6 @@ class _ValidationInputField extends StatelessWidget {
       ),
     );
   }
+
+
 }

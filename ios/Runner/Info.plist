@@ -51,5 +51,11 @@
     <string>Microphone needed for interview</string>
     <key>NSSpeechRecognitionUsageDescription</key>
     <string>Speech recognition needed for interview</string>
+
+    <!-- Required to fetch data from the internet. -->
+    <key>com.apple.security.network.client</key>
+    <true/>
+
+
 </dict>
 </plist>
