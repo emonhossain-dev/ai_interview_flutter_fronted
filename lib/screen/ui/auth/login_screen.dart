@@ -1,3 +1,5 @@
+import 'package:ai_interview/Service/auth_service.dart';
+import 'package:ai_interview/network/Api_URL.dart';
 import 'package:ai_interview/screen/ui/auth/email_verify.dart';
 import 'package:ai_interview/screen/ui/auth/password_forget/email_send_otp.dart';
 import 'package:ai_interview/screen/ui/auth/password_forget/otp_verify.dart';
@@ -9,6 +11,9 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
 import '../../../Service/google_auth_service.dart';
+import '../../../network/network_called.dart';
+import '../../../utils/DeviceIdService.dart';
+import '../../../utils/showDialoguePrograssbar.dart';
 
 class SignInScreen extends StatefulWidget {
   const SignInScreen({super.key});
@@ -189,12 +194,7 @@ class _SignInScreenState extends State<SignInScreen> {
                   child: ElevatedButton(
                     onPressed: () {
 
-                      Navigator.pushReplacement(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => const BottomNavScreen(),
-                        ),
-                      );
+                      _loginAPIcall();
 
                     },
                     style: ElevatedButton.styleFrom(
@@ -321,6 +321,65 @@ class _SignInScreenState extends State<SignInScreen> {
       ),
     );
   }
+
+
+  Future<bool> _loginAPIcall() async {
+
+    showLoadingDialog(context);
+
+    final deviceId = await DeviceIdService.getDeviceId();
+    final response = await NetworkCaller.postJson(
+      ApiURL.loginURL,
+      {
+        "email": _emailController.text.trim(),
+        "password": _passwordController.text.trim(),
+        "device_id": deviceId
+      },
+      requiresAuth: false,
+    );
+
+    if (response.isSuccess && response.statusCode == 200) {
+
+      final data = response.responseData;
+
+      final accessToken = data["access_token"];
+      final refreshToken = data["refresh_token"];
+      final user = data["user"];
+
+      debugPrint("✅ Login Success");
+      debugPrint("Access Token: $accessToken");
+
+      // 🔥 SAVE TOKEN (IMPORTANT)
+
+      AuthService.setLoggedIn(true,accessToken, refreshToken);
+
+      // (optional) user info save
+      debugPrint("User ID: ${user["id"]}");
+      debugPrint("User Email: ${user["email"]}");
+      hideLoadingDialog(context); //
+
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (_) => const BottomNavScreen(),
+        ),
+      );
+
+      return true;
+    } else {
+      debugPrint("❌ ${response.errorMessage}");
+      hideLoadingDialog(context); //
+      return false;
+
+    }
+
+
+
+
+
+  }
+
+
 }
 
 // ── Reusable Input Field ───────────────────────────────────────────────────

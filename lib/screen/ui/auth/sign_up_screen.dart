@@ -8,6 +8,7 @@ import 'package:google_sign_in/google_sign_in.dart';
 import 'package:ai_interview/utils/pathclass.dart';
 
 import '../../../network/network_called.dart';
+import '../../../utils/showDialoguePrograssbar.dart';
 import 'login_screen.dart';
 
 class SignUpScreen extends StatefulWidget {
@@ -425,8 +426,11 @@ class _SignUpScreenState extends State<SignUpScreen> {
   }
 
   Future<bool> _registerAccount() async {
+
+    showLoadingDialog(context);
+
     final response = await NetworkCaller.postForm(
-      "https://ai-interview-backend-python-1.onrender.com/register/",
+      ApiURL.regitationURL,
       {
         "name": _nameController.text.trim(),
         "email": _emailController.text.trim(),
@@ -438,8 +442,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
     if (response.isSuccess) {
       debugPrint("✅ Registration Success");
+      showLoadingDialog(context);
       return true;
     } else {
+      showLoadingDialog(context);
       debugPrint("❌ ${response.errorMessage}");
       return false;
     }

@@ -1,6 +1,12 @@
+import 'package:ai_interview/network/Api_URL.dart';
 import 'package:ai_interview/utils/pathclass.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:shimmer/shimmer.dart';
+
+import '../../Service/auth_service.dart';
+import '../../models/UserModel.dart';
+import '../../network/network_called.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -10,6 +16,23 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+
+  UserModel? _user;
+  bool _isLoading = true;
+
+
+
+  @override
+  void initState() {
+    // TODO: implement initState
+    super.initState();
+    _getProfile();
+
+  }
+
+
+
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -19,7 +42,7 @@ class _HomeScreenState extends State<HomeScreen> {
           behavior: ScrollConfiguration.of(context).copyWith(scrollbars: false),
           child: SingleChildScrollView(
 
-            child: Column(
+            child:_isLoading ? _buildFullPageShimmer() : Column(
               children: [
                 Stack(
                   clipBehavior: Clip.none,
@@ -58,15 +81,16 @@ class _HomeScreenState extends State<HomeScreen> {
                                         ),
                                       ),
                                       const SizedBox(width: 12),
-                                      const Column(
+                                      Column(
                                         crossAxisAlignment: CrossAxisAlignment.start,
                                         mainAxisSize: MainAxisSize.min,
                                         children: [
-                                          Text("Welcome back", style: TextStyle(color: Colors.grey)),
-                                          Text("Alex Carter",
+                                          const Text("Welcome back", style: TextStyle(color: Colors.grey)),
+
+                                          Text(  _user?.name ?? "",
                                             style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                                           ),
-                                          Text("Software Engineer Candidate",
+                                          const Text("Software Engineer Candidate",
                                             style: TextStyle(color: Colors.grey),
                                           ),
                                         ],
@@ -400,4 +424,162 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     );
   }
+
+Future<void> _getProfile() async {
+  final response = await NetworkCaller.getRequest(
+    ApiURL.Profile_URL,
+  );
+
+  if (response.isSuccess) {
+    final data = response.responseData;
+
+    final userJson = data["user"];
+
+    _user = UserModel.fromJson(userJson);
+    _isLoading = false;
+    setState(() {
+    });
+
+  } else {
+    _isLoading = false;
+    setState(() {
+    });
+
+    print("❌ Error: ${response.errorMessage}");
+  }
+}
+
+}
+
+
+
+Widget _buildFullPageShimmer() {
+  return Shimmer.fromColors(
+    baseColor: Colors.grey.shade300,
+    highlightColor: Colors.grey.shade100,
+    child: Column(
+      children: [
+        // ================= HEADER =================
+        Stack(
+          children: [
+            Container(
+              height: 180,
+              width: double.infinity,
+              color: Colors.white,
+            ),
+
+            Positioned(
+              left: 20,
+              right: 20,
+              top: 80,
+              child: Row(
+                children: [
+                  const CircleAvatar(radius: 20, backgroundColor: Colors.white),
+                  const SizedBox(width: 12),
+
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(width: 120, height: 12, color: Colors.white),
+                      const SizedBox(height: 6),
+                      Container(width: 160, height: 12, color: Colors.white),
+                      const SizedBox(height: 6),
+                      Container(width: 100, height: 12, color: Colors.white),
+                    ],
+                  ),
+
+                  const Spacer(),
+
+                  const CircleAvatar(radius: 18, backgroundColor: Colors.white),
+                ],
+              ),
+            ),
+          ],
+        ),
+
+        const SizedBox(height: 120),
+
+        // ================= OVERLAP CARD =================
+        Container(
+          margin: const EdgeInsets.symmetric(horizontal: 20),
+          height: 300,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(40),
+          ),
+        ),
+
+        const SizedBox(height: 20),
+
+        // ================= STATS TITLE =================
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: Row(
+            children: [
+              Container(width: 140, height: 16, color: Colors.white),
+            ],
+          ),
+        ),
+
+        const SizedBox(height: 12),
+
+        // ================= STATS BOXES =================
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: Row(
+            children: [
+              Expanded(child: _boxShimmer()),
+              const SizedBox(width: 12),
+              Expanded(child: _boxShimmer()),
+            ],
+          ),
+        ),
+
+        const SizedBox(height: 24),
+
+        // ================= SECTION TITLE =================
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Container(width: 140, height: 16, color: Colors.white),
+              Container(width: 60, height: 14, color: Colors.white),
+            ],
+          ),
+        ),
+
+        const SizedBox(height: 12),
+
+        // ================= CARDS =================
+        SizedBox(
+          height: 220,
+          child: ListView.builder(
+            scrollDirection: Axis.horizontal,
+            itemCount: 4,
+            itemBuilder: (_, i) {
+              return Container(
+                width: 180,
+                margin: const EdgeInsets.only(left: 20),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+              );
+            },
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
+Widget _boxShimmer() {
+  return Container(
+    height: 120,
+    decoration: BoxDecoration(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(16),
+    ),
+  );
 }

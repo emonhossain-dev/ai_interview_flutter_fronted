@@ -1,6 +1,10 @@
 import 'package:ai_interview/screen/ui/auth/password_forget/new_password_set.dart';
 import 'package:flutter/material.dart';
 
+import '../../../../network/Api_URL.dart';
+import '../../../../network/network_called.dart';
+import '../../../../utils/scafoled_message.dart';
+
 class OTPVerifyScreen extends StatefulWidget {
   final String email;
 
@@ -65,9 +69,44 @@ class _OTPVerifyScreenState extends State<OTPVerifyScreen> {
     debugPrint('OTP entered: $otp');
     // TODO: call your verify API
 
-    Navigator.push(context, MaterialPageRoute(
-      builder: (_) => SetNewPasswordScreen(),
-    ));
+    _OTPVerifyAPIcall(otp);
+
+
+
+
+  }
+
+  Future<bool> _OTPVerifyAPIcall(String code) async {
+
+
+    final response = await NetworkCaller.postJson(
+      ApiURL.otp_verify_URL,
+      {
+        "email": widget.email,
+        "code": code
+      },
+      requiresAuth: false,
+    );
+
+    if (response.isSuccess && response.statusCode == 200) {
+
+      final message = response.responseData["message"];
+      final resetToken = response.responseData["reset_token"];
+      ScafoldMessage.showMessage(context, message);
+
+
+      Navigator.push(context, MaterialPageRoute(
+        builder: (_) => SetNewPasswordScreen(email: widget.email, reset_token: resetToken),
+      ));
+
+
+
+      debugPrint("✅ Registration Success");
+      return true;
+    } else {
+      debugPrint("❌ ${response.errorMessage}");
+      return false;
+    }
 
   }
 
@@ -233,6 +272,8 @@ class _OTPVerifyScreenState extends State<OTPVerifyScreen> {
       ),
     );
   }
+
+
 
   Widget _buildKeyboard() {
     return Container(

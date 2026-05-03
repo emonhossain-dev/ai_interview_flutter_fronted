@@ -1,8 +1,16 @@
 import 'package:ai_interview/screen/ui/auth/login_screen.dart';
 import 'package:flutter/material.dart';
 
+import '../../../../network/Api_URL.dart';
+import '../../../../network/network_called.dart';
+import '../../../../utils/scafoled_message.dart';
+
 class SetNewPasswordScreen extends StatefulWidget {
-  const SetNewPasswordScreen({super.key});
+  final String email;
+  final String reset_token;
+
+
+  const SetNewPasswordScreen({super.key, required this.email, required this.reset_token});
 
   @override
   State<SetNewPasswordScreen> createState() =>
@@ -80,16 +88,10 @@ class _SetNewPasswordScreenState extends State<SetNewPasswordScreen> {
       return;
     }
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Password reset successfully!')),
-    );
+
+    _Set_New_Password_APIcall(pass);
 
 
-    Navigator.pushAndRemoveUntil(
-      context,
-      MaterialPageRoute(builder: (context) => SignInScreen()),
-          (route) => false,
-    );
 
 
   }
@@ -248,6 +250,45 @@ class _SetNewPasswordScreenState extends State<SetNewPasswordScreen> {
       ),
     );
   }
+
+
+  Future<bool> _Set_New_Password_APIcall(String NewPassword) async {
+
+
+    final response = await NetworkCaller.postJson(
+      ApiURL.new_password_URL,
+      {
+        "email": widget.email,
+        "reset_token": widget.reset_token,
+        "new_password": NewPassword
+      },
+      requiresAuth: false,
+    );
+
+    if (response.isSuccess && response.statusCode == 200) {
+
+      final message = response.responseData["message"];
+      ScafoldMessage.showMessage(context, message);
+
+
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (context) => SignInScreen()),
+            (route) => false,
+      );
+
+
+
+      debugPrint("✅ Registration Success");
+      return true;
+    } else {
+      debugPrint("❌ ${response.errorMessage}");
+      return false;
+    }
+
+  }
+
+
 }
 
 // PASSWORD FIELD

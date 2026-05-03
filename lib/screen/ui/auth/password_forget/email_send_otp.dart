@@ -1,6 +1,10 @@
 import 'package:ai_interview/screen/ui/auth/password_forget/otp_verify.dart';
 import 'package:flutter/material.dart';
 
+import '../../../../network/Api_URL.dart';
+import '../../../../network/network_called.dart';
+import '../../../../utils/scafoled_message.dart';
+
 class Email_Send_OTP extends StatefulWidget {
   const Email_Send_OTP({super.key});
 
@@ -32,9 +36,8 @@ class _Email_Send_OTPState extends State<Email_Send_OTP> {
     debugPrint('OTP sent to: $email');
 
     // Navigate to OTP verify screen
-    Navigator.push(context, MaterialPageRoute(
-       builder: (_) => OTPVerifyScreen(email: email),
-    ));
+    _Email_Send_OTP_APIcall();
+
   }
 
   @override
@@ -203,4 +206,45 @@ class _Email_Send_OTPState extends State<Email_Send_OTP> {
       ),
     );
   }
+
+
+  Future<bool> _Email_Send_OTP_APIcall() async {
+
+
+    final response = await NetworkCaller.postJson(
+      ApiURL.email_Send_otp_URL,
+      {
+        "email": _emailController.text.trim()
+      },
+      requiresAuth: false,
+    );
+
+    if (response.isSuccess && response.statusCode == 200) {
+      debugPrint("✅ OTP sent Success");
+
+      final message = response.responseData["message"];
+
+      ScafoldMessage.showMessage(context, message);
+
+
+
+
+       Navigator.push(context, MaterialPageRoute(
+       builder: (_) => OTPVerifyScreen(email: _emailController.text.trim()),
+       ));
+
+
+
+      return true;
+    } else {
+      debugPrint("❌ ${response.errorMessage}");
+      return false;
+    }
+
+  }
+
+
+
+
+
 }

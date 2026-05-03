@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:ai_interview/Service/auth_service.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 
@@ -10,6 +11,7 @@ class NetworkCaller {
     BaseOptions(
       connectTimeout: const Duration(seconds: 10),
       receiveTimeout: const Duration(seconds: 10),
+      followRedirects: true, // 👈 IMPORTANT
       headers: {
         'Content-Type': 'application/json',
       },
@@ -20,8 +22,8 @@ class NetworkCaller {
   static void init() {
     _dio.interceptors.add(
       InterceptorsWrapper(
-        onRequest: (options, handler) {
-          final token = TokenStore.accessToken;
+        onRequest: (options, handler) async {
+          final token = await AuthService.getAccessToken();
 
           if (token != null && options.headers['requiresAuth'] != false) {
             options.headers['Authorization'] = 'Bearer $token';
