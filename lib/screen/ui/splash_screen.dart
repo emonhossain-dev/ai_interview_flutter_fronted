@@ -22,10 +22,11 @@ class _SplashScreenState extends State<SplashScreen> {
   }
 
   Future<void> checkLogin() async {
+    await Future.delayed(const Duration(seconds: 3)); // ⏳ wait 3 sec
 
     final isLogin = await AuthService.isLoggedIn();
 
-    if (!mounted) return; // 👈 important safety check
+    if (!mounted) return;
 
     if (isLogin) {
       Navigator.pushReplacement(

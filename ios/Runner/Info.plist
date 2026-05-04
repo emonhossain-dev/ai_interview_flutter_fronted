@@ -56,6 +56,12 @@
     <key>com.apple.security.network.client</key>
     <true/>
 
+    <key>NSCameraUsageDescription</key>
+    <string>This app needs camera access</string>
+
+    <key>NSPhotoLibraryUsageDescription</key>
+    <string>This app needs gallery access</string>
+
 
 </dict>
 </plist>

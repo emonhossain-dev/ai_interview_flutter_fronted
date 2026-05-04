@@ -22,11 +22,13 @@ dependencies:
   auto_size_text: ^3.0.0
   camera: ^0.12.0+1
   record: ^6.2.0
-  permission_handler: ^11.3.1
+  permission_handler: ^12.0.1
   speech_to_text: ^7.3.0
   google_sign_in: ^7.2.0
   dio: ^5.9.2
   shimmer: ^3.0.0
+  web_socket_channel: ^3.0.3
+  image_picker: ^1.2.2
 
 
 
@@ -35,7 +37,7 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
 
-  flutter_lints: ^5.0.0
+  flutter_lints: ^6.0.0
 
 
 

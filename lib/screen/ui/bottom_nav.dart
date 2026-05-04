@@ -16,7 +16,7 @@ class BottomNavScreen extends StatefulWidget {
 }
 
 class _BottomNavScreenState extends State<BottomNavScreen> {
-  List<Widget> _screen = [
+  final List<Widget> _screen = [
     HomeScreen(),
     ChatScreen(),
     InterviewCallScreen(),
@@ -39,7 +39,7 @@ class _BottomNavScreenState extends State<BottomNavScreen> {
           shape: BoxShape.circle,
           boxShadow: [
             BoxShadow(
-              color: const Color(0xFFFCCB0B).withOpacity(0.6), // 👈 yellow glow
+              color: const Color(0xFFFCCB0B).withOpacity(0.6),
               blurRadius: 15,
               spreadRadius: 2,
             ),
@@ -49,7 +49,6 @@ class _BottomNavScreenState extends State<BottomNavScreen> {
           onPressed: () => _onItemTapped(2),
           backgroundColor: const Color(0xFFFCCB0B),
           elevation: 6,
-          // light base shadow
           shape: const CircleBorder(
             side: BorderSide(color: Colors.white, width: 2),
           ),
@@ -67,7 +66,7 @@ class _BottomNavScreenState extends State<BottomNavScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
               buildItem(0),
-              buildItem(1),
+              buildItem(1), // CHAT
               const SizedBox(width: 40),
               buildItem(3),
               buildItem(4),
@@ -124,7 +123,19 @@ class _BottomNavScreenState extends State<BottomNavScreen> {
     bool isSelected = _selectedIndex == index;
 
     return GestureDetector(
-      onTap: () => _onItemTapped(index),
+      onTap: () {
+        // 🔥 CHAT CLICK → OPEN NEW PAGE
+        if (index == 1) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const ChatScreen()),
+          );
+          return;
+        }
+
+        // normal tab switch
+        _onItemTapped(index);
+      },
       child: SizedBox(
         width: 50,
         height: 50,

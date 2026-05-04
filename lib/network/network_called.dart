@@ -1,18 +1,19 @@
 import 'dart:io';
 import 'package:ai_interview/Service/auth_service.dart';
+import 'package:ai_interview/network/Api_URL.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 
 import '../models/NetworkResponse.dart';
-import '../models/TokenStore.dart';
 
 class NetworkCaller {
   static final Dio _dio = Dio(
     BaseOptions(
       connectTimeout: const Duration(seconds: 10),
       receiveTimeout: const Duration(seconds: 10),
-      followRedirects: true, // 👈 IMPORTANT
+      followRedirects: true,
       headers: {
+        "ngrok-skip-browser-warning": "true",
         'Content-Type': 'application/json',
       },
     ),
@@ -22,19 +23,46 @@ class NetworkCaller {
   static void init() {
     _dio.interceptors.add(
       InterceptorsWrapper(
+        // ---------------- REQUEST ----------------
         onRequest: (options, handler) async {
           final token = await AuthService.getAccessToken();
 
-          if (token != null && options.headers['requiresAuth'] != false) {
+          final requiresAuth = options.extra["requiresAuth"] ?? true;
+
+          if (token != null && requiresAuth) {
             options.headers['Authorization'] = 'Bearer $token';
           }
 
           return handler.next(options);
         },
-        onError: (error, handler) {
-          if (error.response?.statusCode == 401) {
-            debugPrint("❌ Unauthorized");
+
+        // ---------------- ERROR (REFRESH LOGIC) ----------------
+        onError: (error, handler) async {
+          final is401 = error.response?.statusCode == 401;
+
+          if (is401) {
+            debugPrint("❌ Token expired → refreshing...");
+
+            final newToken = await refreshAccessToken();
+
+            if (newToken != null) {
+              final requestOptions = error.requestOptions;
+
+              requestOptions.headers['Authorization'] =
+              'Bearer $newToken';
+
+              try {
+                final response = await _dio.fetch(requestOptions);
+                return handler.resolve(response);
+              } catch (e) {
+                return handler.next(error);
+              }
+            } else {
+              debugPrint("❌ Refresh failed → logout required");
+              await AuthService.logout();
+            }
           }
+
           return handler.next(error);
         },
       ),
@@ -58,9 +86,7 @@ class NetworkCaller {
     }
   }
 
-  // ======================================================
-  // 🔥 1. RAW JSON REQUEST (NO FILE)
-  // ======================================================
+  // ---------------- POST JSON ----------------
   static Future<NetworkResponse> postJson(
       String url,
       Map<String, dynamic> body, {
@@ -74,7 +100,7 @@ class NetworkCaller {
         url,
         data: body,
         options: Options(
-          headers: {"requiresAuth": requiresAuth},
+          extra: {"requiresAuth": requiresAuth},
         ),
       );
 
@@ -88,9 +114,7 @@ class NetworkCaller {
     }
   }
 
-  // ======================================================
-  // 🔥 2. FORM DATA REQUEST (FILE SUPPORT)
-  // ======================================================
+  // ---------------- POST FORM ----------------
   static Future<NetworkResponse> postForm(
       String url,
       Map<String, dynamic> body, {
@@ -106,7 +130,7 @@ class NetworkCaller {
         url,
         data: formData,
         options: Options(
-          headers: {"requiresAuth": requiresAuth},
+          extra: {"requiresAuth": requiresAuth},
         ),
       );
 
@@ -120,13 +144,14 @@ class NetworkCaller {
     }
   }
 
-  // ---------------- RESPONSE ----------------
+  // ---------------- RESPONSE HANDLER ----------------
   static NetworkResponse _handle(Response response) {
     final data = response.data;
 
     return NetworkResponse(
       statusCode: response.statusCode ?? -1,
-      isSuccess: response.statusCode == 200 || response.statusCode == 201,
+      isSuccess: response.statusCode == 200 ||
+          response.statusCode == 201,
       responseData: data,
       errorMessage: (response.statusCode != 200 &&
           response.statusCode != 201)
@@ -135,7 +160,7 @@ class NetworkCaller {
     );
   }
 
-  // ---------------- ERROR ----------------
+  // ---------------- ERROR HANDLER ----------------
   static NetworkResponse _error(dynamic e) {
     debugPrint("❌ Exception: $e");
 
@@ -147,7 +172,32 @@ class NetworkCaller {
   }
 
   static void _log(String title, dynamic data) {
-    debugPrint(data.toString());
+    debugPrint("$title => $data");
   }
+
+  static Future<String?> refreshAccessToken() async {
+    try {
+      final refreshToken = await AuthService.getRefreshToken();
+
+      final dio = Dio();
+
+      final response = await dio.post(
+       ApiURL.RefreshToken,
+        data: {
+          "refresh_token": refreshToken,
+        },
+      );
+
+      final newAccessToken = response.data["access_token"];
+
+      await AuthService.saveAccessToken(newAccessToken);
+
+      return newAccessToken;
+    } catch (e) {
+      return null;
+    }
+  }
+
+
 
 }

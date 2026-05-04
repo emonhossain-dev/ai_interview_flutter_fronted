@@ -1,5 +1,11 @@
 import 'package:flutter/material.dart';
 
+import '../../../network/Api_URL.dart';
+import '../../../network/network_called.dart';
+import '../../../utils/scafoled_message.dart';
+import '../../../utils/showDialoguePrograssbar.dart';
+import 'login_screen.dart';
+
 class EmailVerifyScreen extends StatefulWidget {
   final String email;
 
@@ -63,6 +69,7 @@ class _EmailVerifyScreenState extends State<EmailVerifyScreen> {
     if (otp.length < 6) return;
     debugPrint('OTP entered: $otp');
     // TODO: call your verify API
+    _EmailVerifyApiCall(otp.toString());
   }
 
   @override
@@ -261,6 +268,70 @@ class _EmailVerifyScreenState extends State<EmailVerifyScreen> {
       ),
     );
   }
+
+
+  Future<bool> _EmailVerifyApiCall(String code) async {
+    showLoadingDialog(context);
+
+    final response = await NetworkCaller.postJson(
+      ApiURL.EmailVerifyURL,
+      {
+        "email": widget.email,
+        "code": code
+      },
+      requiresAuth: false,
+    );
+
+    hideLoadingDialog(context);
+
+    if (response.isSuccess && response.statusCode == 200) {
+      final data = response.responseData;
+      final message = data["message"];
+
+      debugPrint("✅ Email Verify Success");
+      ScafoldMessage.showMessage(context, message);
+
+
+      Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => SignInScreen())
+      );
+
+
+      return true;
+
+    } else {
+      // 🔥 MAIN FIX এখানে
+      String errorMsg = "Something went wrong";
+
+      if (response.responseData != null) {
+        final data = response.responseData;
+
+        // FastAPI error format
+        if (data["detail"] != null) {
+          errorMsg = data["detail"];
+        }
+
+        // optional fallback
+        else if (data["message"] != null) {
+          errorMsg = data["message"];
+        }
+      }
+
+      debugPrint("❌ $errorMsg");
+
+      ScafoldMessage.showMessage(context, errorMsg);
+
+      return false;
+    }
+  }
+
+
+
+
+
+
+
 
   Widget _buildKeyboard() {
     return Container(

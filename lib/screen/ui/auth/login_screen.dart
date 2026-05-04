@@ -351,7 +351,9 @@ class _SignInScreenState extends State<SignInScreen> {
 
       // 🔥 SAVE TOKEN (IMPORTANT)
 
-      AuthService.setLoggedIn(true,accessToken, refreshToken);
+      AuthService.setLoggedIn(true, refreshToken);
+      AuthService.saveAccessToken(accessToken);
+
 
       // (optional) user info save
       debugPrint("User ID: ${user["id"]}");

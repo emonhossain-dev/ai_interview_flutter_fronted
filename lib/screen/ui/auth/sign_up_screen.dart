@@ -1,11 +1,15 @@
+import 'dart:io';
+
 import 'package:ai_interview/network/Api_URL.dart';
 import 'package:ai_interview/screen/ui/auth/email_verify.dart';
+import 'package:ai_interview/utils/scafoled_message.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
 import 'package:ai_interview/utils/pathclass.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../../../network/network_called.dart';
 import '../../../utils/showDialoguePrograssbar.dart';
@@ -19,9 +23,14 @@ class SignUpScreen extends StatefulWidget {
 }
 
 class _SignUpScreenState extends State<SignUpScreen> {
+
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
   bool _agreeToTerms = false;
+
+  File? _selectedImage;
+  File? _image;
+  final ImagePicker _picker = ImagePicker();
 
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
@@ -59,13 +68,12 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
       _registerAccount();
 
-     /* Navigator.push(
-          context,
-          MaterialPageRoute(builder: (_) => EmailVerifyScreen())
-      );*/
 
     }
+
   }
+
+
 
   @override
   void dispose() {
@@ -120,9 +128,16 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   const SizedBox(height: 32),
 
                   // ── Illustration / Logo ──
-                  Image.asset(
-                    Pathclass.ic_logo_Path,
-                    fit: BoxFit.cover,
+                  GestureDetector(
+                    onTap: _showPickerOptions,
+                    child: CircleAvatar(
+                      radius: 60,
+                      backgroundColor: Colors.grey[300],
+                      backgroundImage: _image != null ? FileImage(_image!) : null,
+                      child: _image == null
+                          ? const Icon(Icons.camera_alt, size: 30)
+                          : null,
+                    ),
                   ),
 
                   const SizedBox(height: 32),
@@ -426,34 +441,103 @@ class _SignUpScreenState extends State<SignUpScreen> {
   }
 
   Future<bool> _registerAccount() async {
-
     showLoadingDialog(context);
 
-    final response = await NetworkCaller.postForm(
-      ApiURL.regitationURL,
-      {
+    try {
+      FormData formData = FormData.fromMap({
         "name": _nameController.text.trim(),
         "email": _emailController.text.trim(),
         "mobile": _mobileController.text.trim(),
         "password": _passwordController.text.trim(),
-      },
-      requiresAuth: false,
-    );
 
-    if (response.isSuccess) {
-      debugPrint("✅ Registration Success");
-      showLoadingDialog(context);
-      return true;
-    } else {
-      showLoadingDialog(context);
-      debugPrint("❌ ${response.errorMessage}");
+        // 🔥 IMAGE AS FILE (IMPORTANT FIX)
+        if (_image != null)
+          "image": await MultipartFile.fromFile(
+            _image!.path,
+            filename: _image!.path.split('/').last,
+          ),
+      });
+
+      final response = await Dio().post(
+        ApiURL.regitationURL,
+        data: formData,
+      );
+
+      hideLoadingDialog(context);
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        ScafoldMessage.showMessage(context, response.data["message"]);
+
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => EmailVerifyScreen(
+              email: _emailController.text,
+            ),
+          ),
+        );
+
+        return true;
+      } else {
+        ScafoldMessage.showMessage(context, "Something went wrong");
+        return false;
+      }
+    } catch (e) {
+      hideLoadingDialog(context);
+
+      print("❌ Exception: $e");
+
+      ScafoldMessage.showMessage(context, "Network Error");
       return false;
     }
   }
 
 
+  // 👉 Pick image function
+  Future<void> _pickImage(ImageSource source) async {
+    final XFile? pickedFile = await _picker.pickImage(
+      source: source,
+      imageQuality: 80,
+    );
 
+    if (pickedFile != null) {
+      setState(() {
+        _image = File(pickedFile.path);
+        _selectedImage = _image; // 🔥 ADD THIS
+      });
+    }
+  }
 
+  // 👉 Bottom sheet (Camera / Gallery)
+  void _showPickerOptions() {
+    showModalBottomSheet(
+      context: context,
+      builder: (context) {
+        return SafeArea(
+          child: Wrap(
+            children: [
+              ListTile(
+                leading: const Icon(Icons.photo_library),
+                title: const Text("Gallery"),
+                onTap: () {
+                  Navigator.pop(context);
+                  _pickImage(ImageSource.gallery);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.camera_alt),
+                title: const Text("Camera"),
+                onTap: () {
+                  Navigator.pop(context);
+                  _pickImage(ImageSource.camera);
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
 
 }
 
