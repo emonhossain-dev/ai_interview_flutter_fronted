@@ -33,7 +33,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
 
-    final baseUrl = "https://9bf0-103-99-181-58.ngrok-free.app/";
+
 
     final profilePic = _user?.profilePic;
 
@@ -41,7 +41,7 @@ class _HomeScreenState extends State<HomeScreen> {
         profilePic.isNotEmpty &&
         profilePic != "null";
 
-    final imageUrl = hasImage ? baseUrl + profilePic! : null;
+    final imageUrl = hasImage ? ApiURL.baseURL + profilePic! : null;
 
 
     return Scaffold(
@@ -549,7 +549,11 @@ class _HomeScreenState extends State<HomeScreen> {
       final userJson = data["user"];
 
       if (userJson != null) {
+        // ⭐ resume আলাদা top-level থেকে নিয়ে userJson এ inject করুন
+        userJson["resume"] = data["resume"];
+
         _user = UserModel.fromJson(userJson);
+        AuthService.currentUser = UserModel.fromJson(userJson);
       }
 
       _isLoading = false;

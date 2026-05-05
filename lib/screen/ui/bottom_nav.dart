@@ -7,6 +7,9 @@ import 'package:ai_interview/utils/pathclass.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
+import '../../Service/auth_service.dart';
+import 'auth/login_screen.dart';
+
 
 class BottomNavScreen extends StatefulWidget {
   const BottomNavScreen({super.key});
@@ -25,6 +28,38 @@ class _BottomNavScreenState extends State<BottomNavScreen> {
   ];
 
   int _selectedIndex = 0;
+  bool? isLoggedIn;
+
+  @override
+  void initState() {
+    super.initState();
+    checkLogin();
+  }
+
+  Future<void> checkLogin() async {
+    final token = await AuthService.getAccessToken();
+
+    if (token == null || token.isEmpty) {
+      setState(() {
+        isLoggedIn = false;
+      });
+
+      // 🔴 redirect to login
+      Future.microtask(() {
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (_) => const SignInScreen()),
+              (route) => false,
+        );
+      });
+
+      return;
+    }
+
+    setState(() {
+      isLoggedIn = true;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {

@@ -5,14 +5,16 @@ import 'package:flutter/material.dart';
 import 'app.dart';
 import 'network/network_called.dart';
 
-/*
-void main() => runApp(
-  DevicePreview(
-    enabled: !kReleaseMode,
-    builder: (context) => MyApp(), // Wrap your app
-  ),
-);
-*/
+/*void main() {
+  NetworkCaller.init(); // এটা অবশ্যই আগে call করতে হবে
+
+  runApp(
+    DevicePreview(
+      enabled: !kReleaseMode,
+      builder: (context) => MyApp(),
+    ),
+  );
+}*/
 
 
 void main(){

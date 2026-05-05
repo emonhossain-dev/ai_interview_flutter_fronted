@@ -1,10 +1,14 @@
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../models/UserModel.dart';
+
 class AuthService {
 
   static const String _keyLogin = "isLoggedIn";
   static const String _accessToken = "accessToken";
   static const String _refreshToken = "refreshToken";
+
+  static UserModel? currentUser;
 
   // ==============================
   // SAVE LOGIN + TOKENS

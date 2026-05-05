@@ -26,7 +26,6 @@ class NetworkCaller {
         // ---------------- REQUEST ----------------
         onRequest: (options, handler) async {
           final token = await AuthService.getAccessToken();
-
           final requiresAuth = options.extra["requiresAuth"] ?? true;
 
           if (token != null && requiresAuth) {
@@ -46,13 +45,23 @@ class NetworkCaller {
             final newToken = await refreshAccessToken();
 
             if (newToken != null) {
-              final requestOptions = error.requestOptions;
-
-              requestOptions.headers['Authorization'] =
-              'Bearer $newToken';
+              final opts = error.requestOptions;
 
               try {
-                final response = await _dio.fetch(requestOptions);
+                final response = await _dio.request(
+                  opts.path,
+                  data: opts.data,
+                  queryParameters: opts.queryParameters,
+                  options: Options(
+                    method: opts.method,
+                    headers: {
+                      ...opts.headers,
+                      'Authorization': 'Bearer $newToken',
+                    },
+                    extra: opts.extra,
+                    contentType: opts.contentType,
+                  ),
+                );
                 return handler.resolve(response);
               } catch (e) {
                 return handler.next(error);
@@ -144,14 +153,130 @@ class NetworkCaller {
     }
   }
 
+  // ---------------- PUT ----------------
+  static Future<NetworkResponse> putRequest(
+      String url,
+      Map<String, dynamic> body, {
+        bool requiresAuth = true,
+      }) async {
+    try {
+      _log("PUT URL", url);
+      _log("REQUEST BODY", body);
+
+      final response = await _dio.put(
+        url,
+        data: body,
+        options: Options(
+          extra: {"requiresAuth": requiresAuth},
+        ),
+      );
+
+      _log("STATUS CODE", response.statusCode);
+      _log("RESPONSE", response.data);
+
+      return _handle(response);
+    } catch (e) {
+      _log("ERROR", e);
+      return _error(e);
+    }
+  }
+
+  // ---------------- UPLOAD RESUME ----------------
+  static Future<NetworkResponse> uploadResume({
+    required String url,
+    required int userId,
+    required String title,
+    required String summary,
+    required File file,
+    bool requiresAuth = true,
+    Function(int, int)? onSendProgress,
+  }) async {
+    try {
+      String fileName = file.path.split('/').last;
+
+      FormData formData = FormData.fromMap({
+        "user_id": userId,
+        "title": title,
+        "summary": summary,
+        "file": await MultipartFile.fromFile(
+          file.path,
+          filename: fileName,
+        ),
+      });
+
+      final response = await _dio.post(
+        url,
+        data: formData,
+        onSendProgress: onSendProgress,
+        options: Options(
+          extra: {"requiresAuth": requiresAuth},
+          contentType: "multipart/form-data",
+        ),
+      );
+
+      return _handle(response);
+    } catch (e) {
+      return _error(e);
+    }
+  }
+
+  // ---------------- DELETE RESUME ----------------
+  static Future<NetworkResponse> deleteResume({
+    required String url,
+    bool requiresAuth = true,
+  }) async {
+    try {
+      final response = await _dio.delete(
+        url,
+        options: Options(
+          extra: {"requiresAuth": requiresAuth},
+        ),
+      );
+
+      return _handle(response);
+    } catch (e) {
+      return _error(e);
+    }
+  }
+
+  // ---------------- UPLOAD PROFILE IMAGE ----------------
+  static Future<NetworkResponse> uploadProfileImage({
+    required String url,
+    required File file,
+  }) async {
+    try {
+      String fileName = file.path.split('/').last;
+
+      FormData formData = FormData.fromMap({
+        "image": await MultipartFile.fromFile(
+          file.path,
+          filename: fileName,
+        ),
+      });
+
+      final response = await _dio.put(
+        url,
+        data: formData,
+        options: Options(
+          extra: {"requiresAuth": true},
+          contentType: "multipart/form-data",
+        ),
+      );
+
+      return _handle(response);
+    } catch (e) {
+      return _error(e);
+    }
+  }
+
   // ---------------- RESPONSE HANDLER ----------------
   static NetworkResponse _handle(Response response) {
     final data = response.data;
 
     return NetworkResponse(
       statusCode: response.statusCode ?? -1,
-      isSuccess: response.statusCode == 200 ||
-          response.statusCode == 201,
+      isSuccess:
+      response.statusCode == 200 || response.statusCode == 201,
       responseData: data,
       errorMessage: (response.statusCode != 200 &&
           response.statusCode != 201)
@@ -171,33 +296,50 @@ class NetworkCaller {
     );
   }
 
+  // ---------------- LOGGER ----------------
   static void _log(String title, dynamic data) {
     debugPrint("$title => $data");
   }
 
+  // ---------------- REFRESH TOKEN ----------------
   static Future<String?> refreshAccessToken() async {
     try {
       final refreshToken = await AuthService.getRefreshToken();
 
+      if (refreshToken == null || refreshToken.isEmpty) {
+        await AuthService.logout();
+        return null;
+      }
+
       final dio = Dio();
 
       final response = await dio.post(
-       ApiURL.RefreshToken,
-        data: {
-          "refresh_token": refreshToken,
-        },
+        ApiURL.RefreshToken,
+        data: {"refresh_token": refreshToken},
       );
 
       final newAccessToken = response.data["access_token"];
 
+      if (newAccessToken == null || newAccessToken.toString().isEmpty) {
+        await AuthService.logout();
+        return null;
+      }
+
       await AuthService.saveAccessToken(newAccessToken);
 
+      debugPrint("New Access Token: $newAccessToken");
+
       return newAccessToken;
+    } on DioException catch (e) {
+      if (e.response != null) {
+        final statusCode = e.response?.statusCode;
+        if (statusCode == 401 || statusCode == 403) {
+          await AuthService.logout();
+        }
+      }
+      return null;
     } catch (e) {
       return null;
     }
   }
-
-
-
 }

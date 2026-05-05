@@ -29,6 +29,7 @@ dependencies:
   shimmer: ^3.0.0
   web_socket_channel: ^3.0.3
   image_picker: ^1.2.2
+  file_picker: ^11.0.2
 
 
 

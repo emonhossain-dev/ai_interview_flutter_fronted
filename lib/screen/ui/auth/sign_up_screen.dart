@@ -12,6 +12,7 @@ import 'package:ai_interview/utils/pathclass.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../../network/network_called.dart';
+import '../../../utils/ImagePickerHelper.dart';
 import '../../../utils/showDialoguePrograssbar.dart';
 import 'login_screen.dart';
 
@@ -35,6 +36,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
   final _mobileController = TextEditingController();
+  final _currentPosition = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
 
@@ -80,6 +82,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
     _nameController.dispose();
     _emailController.dispose();
     _mobileController.dispose();
+    _currentPosition.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
     super.dispose();
@@ -194,6 +197,23 @@ class _SignUpScreenState extends State<SignUpScreen> {
                     validator: (value) {
                       if (value == null || value.trim().isEmpty) {
                         return 'Please enter your Mobile Number';
+                      }
+                      return null;
+                    },
+                  ),
+
+                  const SizedBox(height: 14),
+
+
+                  // ── Current Possition ──
+                  _ValidationInputField(
+                    controller: _currentPosition,
+                    hint: 'Current Possition',
+                    prefixIcon: Icons.person_outline,
+                    keyboardType: TextInputType.name,
+                    validator: (value) {
+                      if (value == null || value.trim().isEmpty) {
+                        return 'Please enter your Current Possition';
                       }
                       return null;
                     },
@@ -448,6 +468,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
         "name": _nameController.text.trim(),
         "email": _emailController.text.trim(),
         "mobile": _mobileController.text.trim(),
+        "current_position": _currentPosition.text.trim(),
         "password": _passwordController.text.trim(),
 
         // 🔥 IMAGE AS FILE (IMPORTANT FIX)
@@ -493,52 +514,56 @@ class _SignUpScreenState extends State<SignUpScreen> {
   }
 
 
-  // 👉 Pick image function
   Future<void> _pickImage(ImageSource source) async {
-    final XFile? pickedFile = await _picker.pickImage(
-      source: source,
-      imageQuality: 80,
-    );
+    File? file;
 
-    if (pickedFile != null) {
+    if (source == ImageSource.gallery) {
+      file = await ImagePickerHelper.pickFromGallery();
+    } else {
+      file = await ImagePickerHelper.pickFromCamera();
+    }
+
+    if (file != null) {
       setState(() {
-        _image = File(pickedFile.path);
-        _selectedImage = _image; // 🔥 ADD THIS
+        _image = file;
+        _selectedImage = file;
       });
     }
   }
 
-  // 👉 Bottom sheet (Camera / Gallery)
-  void _showPickerOptions() {
-    showModalBottomSheet(
-      context: context,
-      builder: (context) {
-        return SafeArea(
-          child: Wrap(
-            children: [
-              ListTile(
-                leading: const Icon(Icons.photo_library),
-                title: const Text("Gallery"),
-                onTap: () {
-                  Navigator.pop(context);
-                  _pickImage(ImageSource.gallery);
-                },
-              ),
-              ListTile(
-                leading: const Icon(Icons.camera_alt),
-                title: const Text("Camera"),
-                onTap: () {
-                  Navigator.pop(context);
-                  _pickImage(ImageSource.camera);
-                },
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
 
+
+
+
+void _showPickerOptions() {
+  showModalBottomSheet(
+    context: context,
+    builder: (context) {
+      return SafeArea(
+        child: Wrap(
+          children: [
+            ListTile(
+              leading: const Icon(Icons.photo_library),
+              title: const Text("Gallery"),
+              onTap: () {
+                Navigator.pop(context);
+                _pickImage(ImageSource.gallery);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.camera_alt),
+              title: const Text("Camera"),
+              onTap: () {
+                Navigator.pop(context);
+                _pickImage(ImageSource.camera);
+              },
+            ),
+          ],
+        ),
+      );
+    },
+  );
+}
 }
 
 // ── Reusable Validated Input Field ────────────────────────────────────────
