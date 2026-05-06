@@ -1,53 +1,91 @@
 import 'package:flutter/material.dart';
+import 'package:dio/dio.dart';
 
-class DrawerScreen extends StatefulWidget {
-  final List<Map<String, String>> messages;
+class ChatHistoreDrawerScreen extends StatefulWidget {
   final VoidCallback onClose;
+  final String userId;
+  final Function(String chatId, List<Map<String, String>> messages) onChatSelected;
 
-  const DrawerScreen({
+  const ChatHistoreDrawerScreen({
     super.key,
-    required this.messages,
     required this.onClose,
+    required this.userId,
+    required this.onChatSelected,
   });
 
   @override
-  State<DrawerScreen> createState() => _DrawerScreenState();
+  State<ChatHistoreDrawerScreen> createState() => _ChatHistoreDrawerScreenState();
 }
 
-class _DrawerScreenState extends State<DrawerScreen> {
-  static const Color _bg           = Color(0xFFE5E5E5);
+class _ChatHistoreDrawerScreenState extends State<ChatHistoreDrawerScreen> {
+  static const Color _bg           = Color(0xFFF5F6FA);
   static const Color _surface      = Colors.white;
   static const Color _accent       = Color(0xFF4F46E5);
   static const Color _textPrimary  = Color(0xFF1E1B4B);
-  static const Color _textSecondary= Color(0xFF9CA3AF);
+  static const Color _textSecondary = Color(0xFF9CA3AF);
   static const Color _border       = Color(0xFFE5E7EB);
-  static const Color _userBubble   = Color(0xFF4F46E5);
+
+  final Dio _dio = Dio(BaseOptions(baseUrl: 'https://5c3d-103-99-181-57.ngrok-free.app'));
 
   bool _isClosing = false;
-  double? _dragStartX;
+  List<Map<String, dynamic>> _chatList = [];
+  bool _loading = true;
+  bool _loadingMessages = false;
+  String _searchQuery = '';
 
-  Widget _aiAvatar({double size = 34}) {
-    return Container(
-      width: size,
-      height: size,
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFF4F46E5), Color(0xFF818CF8)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(size * 0.3),
-        boxShadow: [
-          BoxShadow(
-            color: _accent.withOpacity(0.25),
-            blurRadius: 8,
-            offset: const Offset(0, 3),
-          ),
-        ],
-      ),
-      child: Icon(Icons.auto_awesome_rounded,
-          color: Colors.white, size: size * 0.52),
-    );
+  @override
+  void initState() {
+    super.initState();
+    _loadChatList();
+  }
+
+  // ── Time formatter ─────────────────────────────
+  String _formatTime(String raw) {
+    try {
+      final dt = DateTime.parse(raw).toLocal();
+      return "${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}";
+    } catch (_) {
+      return "";
+    }
+  }
+
+  Future<void> _loadChatList() async {
+    try {
+      final res = await _dio.get('/api/chats/${widget.userId}');
+      if (!mounted) return;
+      final List data = res.data;
+      setState(() {
+        _chatList = data.map<Map<String, dynamic>>((c) => {
+          "chat_id": c["chat_id"].toString(),
+          "title": c["title"] ?? "Untitled",
+        }).toList();
+        _loading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _loading = false);
+    }
+  }
+
+  Future<void> _loadMessages(String chatId, String title) async {
+    if (!mounted) return;
+    setState(() => _loadingMessages = true);
+    try {
+      final res = await _dio.get('/api/chats/${widget.userId}/$chatId/messages');
+      if (!mounted) return;
+      final List data = res.data;
+      final msgs = data.map<Map<String, String>>((m) => {
+        "sender": m["role"] == "user" ? "user" : "ai",
+        "text": m["content"].toString(),
+        "time": _formatTime(m["created_at"]?.toString() ?? ""), // ← server time
+      }).toList();
+      if (!mounted) return;
+      setState(() => _loadingMessages = false);
+      widget.onChatSelected(chatId, msgs);
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _loadingMessages = false);
+    }
   }
 
   void _closeIfNeeded() {
@@ -57,172 +95,253 @@ class _DrawerScreenState extends State<DrawerScreen> {
     }
   }
 
+  List<Map<String, dynamic>> get _filteredChats {
+    if (_searchQuery.isEmpty) return _chatList;
+    return _chatList.where((c) =>
+        (c["title"] as String).toLowerCase().contains(_searchQuery.toLowerCase())
+    ).toList();
+  }
+
   @override
   Widget build(BuildContext context) {
-    final userMessages = widget.messages
-        .where((m) => m["sender"] == "user")
-        .toList()
-        .reversed
-        .toList();
-
     return GestureDetector(
       behavior: HitTestBehavior.translucent,
-      onHorizontalDragStart: (details) {
-        // Remember where the swipe started (x coordinate)
-        _dragStartX = details.localPosition.dx;
-      },
-      onHorizontalDragUpdate: (details) {
+      onHorizontalDragUpdate: (d) {
         if (_isClosing) return;
-        // Only react if swipe started from left edge (first 50 pixels)
-        if (_dragStartX != null && _dragStartX! < 30) {
-          final delta = details.primaryDelta ?? 0;
-          // Rightward swipe with enough distance (>80px)
-          if (delta > 50) {
-            _closeIfNeeded();
-          }
-        }
+        if ((d.primaryDelta ?? 0) < -50) _closeIfNeeded();
       },
-      onHorizontalDragEnd: (details) {
-        if (_isClosing) return;
-        if (_dragStartX != null && _dragStartX! < 40) {
-          final velocity = details.primaryVelocity ?? 0;
-          // Rightward flick with enough speed (>800 dps)
-          if (velocity > 100) {
-            _closeIfNeeded();
-          }
-        }
-        // Reset for next gesture
-        _dragStartX = null;
+      onHorizontalDragEnd: (d) {
+        if (!_isClosing && (d.primaryVelocity ?? 0) < -100) _closeIfNeeded();
       },
       child: Scaffold(
         backgroundColor: _bg,
-        appBar: AppBar(
-          backgroundColor: _surface,
-          elevation: 0,
-          automaticallyImplyLeading: false,
-          titleSpacing: 0,
-          bottom: PreferredSize(
-            preferredSize: const Size.fromHeight(1),
-            child: Container(height: 1, color: _border),
-          ),
-          title: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Row(
-              children: [
-                _aiAvatar(size: 38),
-                const SizedBox(width: 12),
-                const Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+        body: SafeArea(
+          child: Stack(
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+
+                  // ── Top bar ──────────────────────────────
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 16, 16, 8),
+                    child: Row(
+                      children: [
+                        Row(
+                          children: [
+                            Container(
+                              width: 32, height: 32,
+                              decoration: BoxDecoration(
+                                gradient: const LinearGradient(
+                                  colors: [Color(0xFF4F46E5), Color(0xFF818CF8)],
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
+                                ),
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: const Icon(Icons.auto_awesome_rounded,
+                                  color: Colors.white, size: 17),
+                            ),
+                            const SizedBox(width: 10),
+                            const Text(
+                              "AI Assistant",
+                              style: TextStyle(
+                                color: _textPrimary,
+                                fontSize: 17,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const Spacer(),
+                      ],
+                    ),
+                  ),
+
+                  // ── Divider ──
+                  const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 16),
+                    child: Divider(color: _border, height: 1),
+                  ),
+
+                  const SizedBox(height: 12),
+
+                  // ── Recents label ──
+                  const Padding(
+                    padding: EdgeInsets.fromLTRB(20, 0, 20, 8),
+                    child: Text(
+                      "Recents",
+                      style: TextStyle(
+                        color: _textPrimary,
+                        fontSize: 24,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+
+                  // ── Chat list ──
+                  Expanded(child: _buildChatList()),
+                ],
+              ),
+
+              // ── Loading overlay ──
+              if (_loadingMessages)
+                Container(
+                  color: Colors.black.withOpacity(0.12),
+                  child: const Center(
+                    child: CircularProgressIndicator(color: _accent),
+                  ),
+                ),
+
+              // ── Bottom bar ──
+              Positioned(
+                bottom: 0,
+                right: 0,
+                child: Container(
+                  color: _bg,
+                  padding: const EdgeInsets.fromLTRB(16, 10, 16, 16),
+                  child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Text(
-                        "Chat History",
-                        style: TextStyle(
-                          color: _textPrimary,
-                          fontWeight: FontWeight.w700,
-                          fontSize: 15.5,
+                      GestureDetector(
+                        onTap: widget.onClose,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 18,
+                            vertical: 12,
+                          ),
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(
+                              colors: [Color(0xFF4F46E5), Color(0xFF818CF8)],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                            borderRadius: BorderRadius.circular(24),
+                            boxShadow: [
+                              BoxShadow(
+                                color: _accent.withOpacity(0.3),
+                                blurRadius: 10,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
+                          ),
+                          child: const Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.edit_outlined,
+                                  color: Colors.white, size: 16),
+                              SizedBox(width: 2),
+                              Text(
+                                "Chat",
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     ],
                   ),
                 ),
-              ],
-            ),
+              )
+            ],
           ),
-        ),
-        body: Stack(
-          children: [
-            userMessages.isEmpty
-                ? _buildEmpty()
-                : ListView.separated(
-              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-              itemCount: userMessages.length,
-              separatorBuilder: (_, __) => const SizedBox(height: 8),
-              itemBuilder: (context, index) {
-                final msg = userMessages[index];
-                return _buildHistoryTile(context, msg, index);
-              },
-            ),
-            Positioned(
-              bottom: 24,
-              right: 24,
-              child: FloatingChatButton(onClose: widget.onClose),
-            ),
-          ],
         ),
       ),
     );
   }
 
-  Widget _buildHistoryTile(BuildContext context, Map<String, String> msg, int index) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      decoration: BoxDecoration(
-        color: _surface,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: _border, width: 1.2),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.04),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 34,
-            height: 34,
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [Color(0xFF4F46E5), Color(0xFF818CF8)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Center(
-              child: Text(
-                "${index + 1}",
+  Widget _buildMenuItem(IconData icon, String label) {
+    return InkWell(
+      onTap: () {},
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
+          child: Row(
+            children: [
+              Icon(icon, color: _textPrimary, size: 22),
+              const SizedBox(width: 14),
+              Text(
+                label,
                 style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w700,
-                  fontSize: 13,
+                  color: _textPrimary,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w500,
                 ),
               ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildChatList() {
+    if (_loading) {
+      return _buildShimmerList();
+    }
+    if (_filteredChats.isEmpty) return _buildEmpty();
+
+    return ListView.builder(
+      padding: const EdgeInsets.only(bottom: 80),
+      itemCount: _filteredChats.length,
+      itemBuilder: (context, index) {
+        final chat = _filteredChats[index];
+        return _buildChatTile(chat);
+      },
+    );
+  }
+
+  Widget _buildShimmerList() {
+    const widthFactors = [0.72, 0.45, 0.60, 0.78, 0.50, 0.65];
+    return ListView.builder(
+      padding: const EdgeInsets.only(bottom: 80),
+      itemCount: widthFactors.length,
+      itemBuilder: (context, index) {
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 1),
+          child: Container(
+            padding: const EdgeInsets.symmetric(vertical: 13),
+            child: _ShimmerBox(
+              width: MediaQuery.of(context).size.width * widthFactors[index],
+              height: 18,
+              borderRadius: 6,
             ),
           ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  msg["text"] ?? "",
-                  maxLines: 2,
+        );
+      },
+    );
+  }
+
+  Widget _buildChatTile(Map<String, dynamic> chat) {
+    return InkWell(
+      onTap: () => _loadMessages(chat["chat_id"], chat["title"]),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 1),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 13),
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  chat["title"] ?? "Untitled",
+                  maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
-                    color: _textPrimary,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                    height: 1.4,
+                    color: Colors.black,
+                    fontSize: 20,
+                    fontWeight: FontWeight.w400,
+                    height: 1.3,
                   ),
                 ),
-                const SizedBox(height: 4),
-                const Text(
-                  "You",
-                  style: TextStyle(
-                    color: _textSecondary,
-                    fontSize: 11,
-                  ),
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
-          const Icon(Icons.chevron_right_rounded, color: _textSecondary, size: 20),
-        ],
+        ),
       ),
     );
   }
@@ -233,84 +352,88 @@ class _DrawerScreenState extends State<DrawerScreen> {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Container(
-            width: 64,
-            height: 64,
+            width: 56, height: 56,
             decoration: BoxDecoration(
               color: const Color(0xFFEEEDFE),
-              borderRadius: BorderRadius.circular(18),
+              borderRadius: BorderRadius.circular(16),
             ),
-            child: const Icon(
-              Icons.history_rounded,
-              color: Color(0xFF4F46E5),
-              size: 30,
-            ),
+            child: const Icon(Icons.history_rounded, color: _accent, size: 26),
           ),
-          const SizedBox(height: 16),
-          const Text(
-            "No history yet",
-            style: TextStyle(
-              color: Color(0xFF1E1B4B),
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          const SizedBox(height: 6),
-          const Text(
-            "Your messages will appear here",
-            style: TextStyle(
-              color: Color(0xFF9CA3AF),
-              fontSize: 13,
-            ),
-          ),
+          const SizedBox(height: 14),
+          const Text("No history yet",
+              style: TextStyle(color: _textPrimary,
+                  fontSize: 15, fontWeight: FontWeight.w600)),
+          const SizedBox(height: 4),
+          const Text("Your chats will appear here",
+              style: TextStyle(color: _textSecondary, fontSize: 13)),
         ],
       ),
     );
   }
 }
 
-class FloatingChatButton extends StatelessWidget {
-  final VoidCallback onClose;
+// ── Shimmer box widget ────────────────────────────────────────────────────
+class _ShimmerBox extends StatefulWidget {
+  final double width;
+  final double height;
+  final double borderRadius;
 
-  const FloatingChatButton({super.key, required this.onClose});
+  const _ShimmerBox({
+    required this.width,
+    required this.height,
+    this.borderRadius = 6,
+  });
+
+  @override
+  State<_ShimmerBox> createState() => _ShimmerBoxState();
+}
+
+class _ShimmerBoxState extends State<_ShimmerBox>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _animation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1400),
+    )..repeat();
+    _animation = Tween<double>(begin: -1.5, end: 1.5).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.linear),
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onClose,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-        decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            colors: [Color(0xFF4F46E5), Color(0xFF818CF8)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
+    return AnimatedBuilder(
+      animation: _animation,
+      builder: (context, _) {
+        return Container(
+          width: widget.width,
+          height: widget.height,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(widget.borderRadius),
+            gradient: LinearGradient(
+              begin: Alignment(_animation.value - 1, 0),
+              end: Alignment(_animation.value + 1, 0),
+              colors: const [
+                Color(0xFFEBEBEB),
+                Color(0xFFF5F5F5),
+                Color(0xFFEBEBEB),
+              ],
+              stops: const [0.0, 0.5, 1.0],
+            ),
           ),
-          borderRadius: BorderRadius.circular(50),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.25),
-              blurRadius: 12,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        child: const Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.edit_outlined, color: Colors.white, size: 20),
-            SizedBox(width: 8),
-            Text(
-              'Chat',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 16,
-                fontWeight: FontWeight.w500,
-                letterSpacing: 0.3,
-              ),
-            ),
-          ],
-        ),
-      ),
+        );
+      },
     );
   }
 }

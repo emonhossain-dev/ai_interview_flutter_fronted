@@ -1,3 +1,4 @@
+import 'package:ai_interview/models/UserModel.dart';
 import 'package:ai_interview/screen/history_screen.dart';
 import 'package:ai_interview/screen/ui/chat_screen.dart';
 import 'package:ai_interview/screen/ui/home_screen.dart';
@@ -8,31 +9,40 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
 import '../../Service/auth_service.dart';
+
 import 'auth/login_screen.dart';
 
-
 class BottomNavScreen extends StatefulWidget {
-  const BottomNavScreen({super.key});
+  final UserModel? user; // ✅
+
+  const BottomNavScreen({super.key, this.user});
 
   @override
   State<BottomNavScreen> createState() => _BottomNavScreenState();
 }
 
 class _BottomNavScreenState extends State<BottomNavScreen> {
-  final List<Widget> _screen = [
-    HomeScreen(),
-    ChatScreen(),
-    InterviewCallScreen(),
-    HistoryScreen(),
-    ProfileScreen(),
-  ];
+
+  late final List<Widget> _screen; // ✅ late — initState এ build হবে
 
   int _selectedIndex = 0;
   bool? isLoggedIn;
 
+  String get userId => widget.user?.id.toString() ?? "";
+
   @override
   void initState() {
     super.initState();
+
+    // ✅ widget.user এখানে available
+    _screen = [
+      HomeScreen(),
+      ChatScreen(),
+      InterviewCallScreen(),
+      HistoryScreen(),
+      ProfileScreen(),
+    ];
+
     checkLogin();
   }
 
@@ -40,11 +50,8 @@ class _BottomNavScreenState extends State<BottomNavScreen> {
     final token = await AuthService.getAccessToken();
 
     if (token == null || token.isEmpty) {
-      setState(() {
-        isLoggedIn = false;
-      });
+      setState(() => isLoggedIn = false);
 
-      // 🔴 redirect to login
       Future.microtask(() {
         Navigator.pushAndRemoveUntil(
           context,
@@ -52,13 +59,14 @@ class _BottomNavScreenState extends State<BottomNavScreen> {
               (route) => false,
         );
       });
-
       return;
     }
 
-    setState(() {
-      isLoggedIn = true;
-    });
+    setState(() => isLoggedIn = true);
+  }
+
+  void _onItemTapped(int index) {
+    setState(() => _selectedIndex = index);
   }
 
   @override
@@ -67,7 +75,6 @@ class _BottomNavScreenState extends State<BottomNavScreen> {
       extendBody: true,
       body: _screen[_selectedIndex],
 
-      // Floating center button
       floatingActionButton: Container(
         margin: const EdgeInsets.only(top: 20),
         decoration: BoxDecoration(
@@ -101,7 +108,7 @@ class _BottomNavScreenState extends State<BottomNavScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
               buildItem(0),
-              buildItem(1), // CHAT
+              buildItem(1),
               const SizedBox(width: 40),
               buildItem(3),
               buildItem(4),
@@ -112,12 +119,6 @@ class _BottomNavScreenState extends State<BottomNavScreen> {
     );
   }
 
-  void _onItemTapped(int index) {
-    setState(() {
-      _selectedIndex = index;
-    });
-  }
-
   Widget _getIcon(int index, bool isSelected) {
     final color = isSelected ? Colors.white : Colors.grey;
 
@@ -125,66 +126,55 @@ class _BottomNavScreenState extends State<BottomNavScreen> {
       case 0:
         return SvgPicture.asset(
           Pathclass.ic_home_Path,
-          width: 20,
-          height: 20,
+          width: 20, height: 20,
           colorFilter: ColorFilter.mode(color, BlendMode.srcIn),
         );
-
       case 1:
         return SvgPicture.asset(
           Pathclass.ic_chat_Path,
-          width: 20,
-          height: 20,
+          width: 20, height: 20,
           colorFilter: ColorFilter.mode(color, BlendMode.srcIn),
         );
-
       case 3:
         return Icon(Icons.folder, color: color, size: 24);
-
       case 4:
         return Icon(Icons.person, color: color, size: 24);
-
       default:
         return SvgPicture.asset(
           Pathclass.ic_home_Path,
-          width: 20,
-          height: 20,
+          width: 20, height: 20,
           colorFilter: ColorFilter.mode(color, BlendMode.srcIn),
         );
     }
   }
 
   Widget buildItem(int index) {
-    bool isSelected = _selectedIndex == index;
+    final bool isSelected = _selectedIndex == index;
 
     return GestureDetector(
       onTap: () {
-        // 🔥 CHAT CLICK → OPEN NEW PAGE
         if (index == 1) {
           Navigator.push(
             context,
-            MaterialPageRoute(builder: (_) => const ChatScreen()),
+            MaterialPageRoute(
+              builder: (_) => ChatScreen(user: widget.user), // ✅
+            ),
           );
           return;
         }
-
-        // normal tab switch
         _onItemTapped(index);
       },
       child: SizedBox(
-        width: 50,
-        height: 50,
+        width: 50, height: 50,
         child: Stack(
           alignment: Alignment.center,
           children: [
             if (isSelected)
               SvgPicture.asset(
                 Pathclass.bottomSelected_background_Path,
-                width: 50,
-                height: 50,
+                width: 50, height: 50,
                 fit: BoxFit.cover,
               ),
-
             _getIcon(index, isSelected),
           ],
         ),

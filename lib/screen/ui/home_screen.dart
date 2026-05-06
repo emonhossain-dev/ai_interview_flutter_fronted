@@ -554,6 +554,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
         _user = UserModel.fromJson(userJson);
         AuthService.currentUser = UserModel.fromJson(userJson);
+
       }
 
       _isLoading = false;
