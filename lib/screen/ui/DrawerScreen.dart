@@ -25,19 +25,44 @@ class _ChatHistoreDrawerScreenState extends State<ChatHistoreDrawerScreen> {
   static const Color _textSecondary = Color(0xFF9CA3AF);
   static const Color _border       = Color(0xFFE5E7EB);
 
-  final Dio _dio = Dio(BaseOptions(baseUrl: 'https://5c3d-103-99-181-57.ngrok-free.app'));
+  final Dio _dio = Dio(BaseOptions(baseUrl: 'https://2466-103-99-181-58.ngrok-free.app'));
 
   bool _isClosing = false;
   List<Map<String, dynamic>> _chatList = [];
   bool _loading = true;
-  bool _loadingMessages = false;
   String _searchQuery = '';
+
+
+  // State variables add করো
+  int _currentPage = 1;
+  static const int _limit = 20;
+  bool _hasMore = true;
+  bool _loadingMore = false;
+  final ScrollController _listScrollController = ScrollController();
 
   @override
   void initState() {
     super.initState();
     _loadChatList();
+
+    _listScrollController.addListener(() {
+      // নিচে scroll করলে আরো load করবে
+      if (_listScrollController.position.pixels >=
+          _listScrollController.position.maxScrollExtent - 100) {
+        if (_hasMore && !_loadingMore) _loadMoreChats();
+      }
+    });
+
   }
+
+
+
+  @override
+  void dispose() {
+    _listScrollController.dispose();
+    super.dispose();
+  }
+
 
   // ── Time formatter ─────────────────────────────
   String _formatTime(String raw) {
@@ -49,16 +74,23 @@ class _ChatHistoreDrawerScreenState extends State<ChatHistoreDrawerScreen> {
     }
   }
 
+  // _loadChatList() replace করো
   Future<void> _loadChatList() async {
     try {
-      final res = await _dio.get('/api/chats/${widget.userId}');
+      final res = await _dio.get(
+        '/api/chats/${widget.userId}',
+        queryParameters: {"page": 1, "limit": _limit},
+      );
       if (!mounted) return;
-      final List data = res.data;
+      final data = res.data;
+      final List chats = data["chats"];
       setState(() {
-        _chatList = data.map<Map<String, dynamic>>((c) => {
+        _chatList = chats.map<Map<String, dynamic>>((c) => {
           "chat_id": c["chat_id"].toString(),
           "title": c["title"] ?? "Untitled",
         }).toList();
+        _hasMore = data["has_more"] ?? false;
+        _currentPage = 1;
         _loading = false;
       });
     } catch (e) {
@@ -67,9 +99,35 @@ class _ChatHistoreDrawerScreenState extends State<ChatHistoreDrawerScreen> {
     }
   }
 
+// নতুন method — পরের page load করবে
+  Future<void> _loadMoreChats() async {
+    if (!_hasMore || _loadingMore) return;
+    setState(() => _loadingMore = true);
+    try {
+      final res = await _dio.get(
+        '/api/chats/${widget.userId}',
+        queryParameters: {"page": _currentPage + 1, "limit": _limit},
+      );
+      if (!mounted) return;
+      final data = res.data;
+      final List chats = data["chats"];
+      setState(() {
+        _chatList.addAll(chats.map<Map<String, dynamic>>((c) => {
+          "chat_id": c["chat_id"].toString(),
+          "title": c["title"] ?? "Untitled",
+        }));
+        _hasMore = data["has_more"] ?? false;
+        _currentPage += 1;
+        _loadingMore = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _loadingMore = false);
+    }
+  }
+
   Future<void> _loadMessages(String chatId, String title) async {
     if (!mounted) return;
-    setState(() => _loadingMessages = true);
     try {
       final res = await _dio.get('/api/chats/${widget.userId}/$chatId/messages');
       if (!mounted) return;
@@ -77,14 +135,12 @@ class _ChatHistoreDrawerScreenState extends State<ChatHistoreDrawerScreen> {
       final msgs = data.map<Map<String, String>>((m) => {
         "sender": m["role"] == "user" ? "user" : "ai",
         "text": m["content"].toString(),
-        "time": _formatTime(m["created_at"]?.toString() ?? ""), // ← server time
+        "time": _formatTime(m["created_at"]?.toString() ?? ""),
       }).toList();
       if (!mounted) return;
-      setState(() => _loadingMessages = false);
       widget.onChatSelected(chatId, msgs);
     } catch (e) {
       if (!mounted) return;
-      setState(() => _loadingMessages = false);
     }
   }
 
@@ -184,14 +240,6 @@ class _ChatHistoreDrawerScreenState extends State<ChatHistoreDrawerScreen> {
                 ],
               ),
 
-              // ── Loading overlay ──
-              if (_loadingMessages)
-                Container(
-                  color: Colors.black.withOpacity(0.12),
-                  child: const Center(
-                    child: CircularProgressIndicator(color: _accent),
-                  ),
-                ),
 
               // ── Bottom bar ──
               Positioned(
@@ -281,17 +329,23 @@ class _ChatHistoreDrawerScreenState extends State<ChatHistoreDrawerScreen> {
   }
 
   Widget _buildChatList() {
-    if (_loading) {
-      return _buildShimmerList();
-    }
+    if (_loading) return _buildShimmerList();
     if (_filteredChats.isEmpty) return _buildEmpty();
 
     return ListView.builder(
+      controller: _listScrollController, // ← এইটা missing ছিল
       padding: const EdgeInsets.only(bottom: 80),
-      itemCount: _filteredChats.length,
+      itemCount: _filteredChats.length + (_loadingMore ? 1 : 0), // ← loading indicator
       itemBuilder: (context, index) {
-        final chat = _filteredChats[index];
-        return _buildChatTile(chat);
+        if (index == _filteredChats.length) {
+          return const Padding(
+            padding: EdgeInsets.symmetric(vertical: 16),
+            child: Center(
+              child: CircularProgressIndicator(color: _accent),
+            ),
+          );
+        }
+        return _buildChatTile(_filteredChats[index]);
       },
     );
   }
