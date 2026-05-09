@@ -9,6 +9,16 @@ class AuthService {
   static const String _refreshToken = "refreshToken";
 
   static UserModel? currentUser;
+  static UserModel? logincurrentUser;
+
+
+  static void setUser(UserModel user) {
+    logincurrentUser = user;
+  }
+
+  static UserModel? getUser() {
+    return logincurrentUser;
+  }
 
   // ==============================
   // SAVE LOGIN + TOKENS

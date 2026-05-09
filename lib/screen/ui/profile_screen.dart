@@ -1,6 +1,9 @@
+import 'package:ai_interview/screen/ui/Proflie_Menu_Drawer/HelpSupportScreen.dart';
+import 'package:ai_interview/screen/ui/Proflie_Menu_Drawer/PrivacyPolicyScreen.dart';
 import 'package:ai_interview/screen/ui/auth/login_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:in_app_review/in_app_review.dart';
 
 import '../../Service/auth_service.dart';
 import '../../models/NetworkResponse.dart';
@@ -15,6 +18,10 @@ import 'package:dio/dio.dart';
 
 import '../../utils/DeviceIdService.dart';
 import '../../utils/ImagePickerHelper.dart';
+import 'Proflie_Menu_Drawer/Pricing_Screen.dart';
+import 'Proflie_Menu_Drawer/TermsAndConditionsScreen.dart';
+import 'Proflie_Menu_Drawer/about_app.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -337,42 +344,208 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Drawer buildDrawer(BuildContext context) {
     return Drawer(
       child: SafeArea(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Padding(
-              padding: EdgeInsets.all(20),
-              child: Text(
-                'Menu',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
+        child: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+
+              // ===== TITLE =====
+              const Padding(
+                padding: EdgeInsets.all(20),
+                child: Text(
+                  'More',
+                  style: TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
               ),
-            ),
-            ListTile(
-              leading: const Icon(Icons.person_outline),
-              title: const Text('Profile'),
-              onTap: () => Navigator.pop(context),
-            ),
-            ListTile(
-              leading: const Icon(Icons.settings_outlined),
-              title: const Text('Settings'),
-              onTap: () => Navigator.pop(context),
-            ),
-            ListTile(
-              leading: const Icon(Icons.logout, color: Colors.red),
-              title: const Text('Logout', style: TextStyle(color: Colors.red)),
-              onTap: () {
-                _LogOutApiCalled();
-                Navigator.pop(context);
+
+              // ===== APP =====
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 16),
+                child: Text(
+                  "ACCOUNT",
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.grey,
+                  ),
+                ),
+              ),
+
+              ListTile(
+                leading: const Icon(Icons.workspace_premium_outlined),
+                title: const Text('Pricing & Plans'),
+                onTap: () {
+
+                  Navigator.pop(context);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const PricingPage(),
+                    ),
+                  );
 
 
-              },
-            ),
-          ],
+                },
+              ),
+
+
+              const Divider(height: 28),
+
+              // ===== LEGAL =====
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 16),
+                child: Text(
+                  "LEGAL",
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.grey,
+                  ),
+                ),
+              ),
+
+              ListTile(
+                leading: const Icon(Icons.privacy_tip_outlined),
+                title: const Text('Privacy Policy'),
+                onTap: () {
+
+                  Navigator.pop(context);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const PrivacyPolicyScreen(),
+                    ),
+                  );
+
+
+                },
+              ),
+
+              ListTile(
+                leading: const Icon(Icons.description_outlined),
+                title: const Text('Terms & Conditions'),
+                onTap: () {
+
+                  Navigator.pop(context);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const TermsAndConditionsScreen(),
+                    ),
+                  );
+
+
+                },
+              ),
+
+              const Divider(height: 28),
+
+              // ===== SUPPORT =====
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 16),
+                child: Text(
+                  "SUPPORT",
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.grey,
+                  ),
+                ),
+              ),
+
+              ListTile(
+                leading: const Icon(Icons.help_outline),
+                title: const Text('Help & Support'),
+                onTap: () {
+
+                  Navigator.pop(context);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const HelpSupportScreen(),
+                    ),
+                  );
+
+                },
+              ),
+
+              ListTile(
+                leading: const Icon(Icons.star_border),
+                title: const Text('Rate App'),
+                onTap: () async {
+
+                  Navigator.pop(context);
+
+                  final InAppReview inAppReview = InAppReview.instance;
+
+                  final url = Uri.parse(
+                      "https://play.google.com/store/apps/details?id=com.iqiyi.i18n"
+                  );
+
+                  if (await canLaunchUrl(url)) {
+                    await launchUrl(url, mode: LaunchMode.externalApplication);
+                  }
+
+                  /*if (await inAppReview.isAvailable()) {
+                    await inAppReview.requestReview();
+                  } else {
+                    // fallback → Play Store open
+                    await inAppReview.openStoreListing(
+                      appStoreId: "YOUR_APP_ID",
+                    );
+                  }*/
+                },
+              ),
+
+              ListTile(
+                leading: const Icon(Icons.info_outline),
+                title: const Text('About App'),
+                onTap: () {
+
+                  // drawer close
+                  Navigator.pop(context);
+
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const AboutAppScreen(),
+                    ),
+                  );
+                },
+              ),
+
+
+
+              const SizedBox(height: 30),
+
+              const Divider(),
+
+              // ===== LOGOUT =====
+              ListTile(
+                leading: const Icon(
+                  Icons.logout,
+                  color: Colors.red,
+                ),
+                title: const Text(
+                  'Logout',
+                  style: TextStyle(color: Colors.red),
+                ),
+                onTap: () {
+                  _LogOutApiCalled();
+                  Navigator.pop(context);
+                },
+              ),
+
+              const SizedBox(height: 10),
+            ],
+          ),
         ),
       ),
     );
   }
-
   // ─────────────────────────────────────────────────────────
   // WIDGETS
   // ─────────────────────────────────────────────────────────

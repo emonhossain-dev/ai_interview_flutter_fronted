@@ -360,6 +360,8 @@ class _SignInScreenState extends State<SignInScreen> {
       debugPrint("User Email: ${user["email"]}");
       hideLoadingDialog(context); //
 
+      AuthService.setUser(user);
+
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(

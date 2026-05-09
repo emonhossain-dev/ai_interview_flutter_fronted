@@ -1,10 +1,11 @@
 class ApiURL{
 
   // Base Path
-  static const String baseURL = "https://2466-103-99-181-58.ngrok-free.app/";
+  static const String baseURL = "https://c546-103-99-181-58.ngrok-free.app/";
+  static const String WebShokedbaseURL = "wss://c546-103-99-181-58.ngrok-free.app/";
 
   //chat shoked
-  static const String Chat_URL = "wss://2466-103-99-181-58.ngrok-free.app/ws/chat";
+  static const String Chat_URL = "wss://c546-103-99-181-58.ngrok-free.app/ws/chat";
 
 
   // account managment

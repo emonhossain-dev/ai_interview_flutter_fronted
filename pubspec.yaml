@@ -30,7 +30,10 @@ dependencies:
   web_socket_channel: ^3.0.3
   image_picker: ^1.2.2
   file_picker: ^11.0.2
-
+  just_audio: ^0.10.5
+  path_provider: ^2.1.5
+  in_app_review: ^2.0.11
+  in_app_purchase: ^3.2.3
 
 
 
@@ -52,6 +55,7 @@ flutter:
   assets:
     - assets/background/
     - assets/icon/
+    - assets/images/
   #   - images/a_dot_ham.jpeg
 
 

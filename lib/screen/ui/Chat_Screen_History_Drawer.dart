@@ -1,3 +1,5 @@
+import 'package:ai_interview/Service/auth_service.dart';
+import 'package:ai_interview/network/Api_URL.dart';
 import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
 
@@ -25,7 +27,7 @@ class _ChatHistoreDrawerScreenState extends State<ChatHistoreDrawerScreen> {
   static const Color _textSecondary = Color(0xFF9CA3AF);
   static const Color _border       = Color(0xFFE5E7EB);
 
-  final Dio _dio = Dio(BaseOptions(baseUrl: 'https://2466-103-99-181-58.ngrok-free.app'));
+  final Dio _dio = Dio(BaseOptions(baseUrl: ApiURL.baseURL));
 
   bool _isClosing = false;
   List<Map<String, dynamic>> _chatList = [];
@@ -57,6 +59,7 @@ class _ChatHistoreDrawerScreenState extends State<ChatHistoreDrawerScreen> {
 
 
 
+
   @override
   void dispose() {
     _listScrollController.dispose();
@@ -78,7 +81,7 @@ class _ChatHistoreDrawerScreenState extends State<ChatHistoreDrawerScreen> {
   Future<void> _loadChatList() async {
     try {
       final res = await _dio.get(
-        '/api/chats/${widget.userId}',
+        'api/chats/${widget.userId}',
         queryParameters: {"page": 1, "limit": _limit},
       );
       if (!mounted) return;
@@ -105,7 +108,7 @@ class _ChatHistoreDrawerScreenState extends State<ChatHistoreDrawerScreen> {
     setState(() => _loadingMore = true);
     try {
       final res = await _dio.get(
-        '/api/chats/${widget.userId}',
+        'api/chats/${widget.userId}',
         queryParameters: {"page": _currentPage + 1, "limit": _limit},
       );
       if (!mounted) return;
@@ -129,7 +132,7 @@ class _ChatHistoreDrawerScreenState extends State<ChatHistoreDrawerScreen> {
   Future<void> _loadMessages(String chatId, String title) async {
     if (!mounted) return;
     try {
-      final res = await _dio.get('/api/chats/${widget.userId}/$chatId/messages');
+      final res = await _dio.get('api/chats/${widget.userId}/$chatId/messages');
       if (!mounted) return;
       final List data = res.data;
       final msgs = data.map<Map<String, String>>((m) => {

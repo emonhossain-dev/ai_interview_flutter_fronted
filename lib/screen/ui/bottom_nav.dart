@@ -1,5 +1,5 @@
 import 'package:ai_interview/models/UserModel.dart';
-import 'package:ai_interview/screen/history_screen.dart';
+import 'package:ai_interview/screen/ui/history_screen.dart';
 import 'package:ai_interview/screen/ui/chat_screen.dart';
 import 'package:ai_interview/screen/ui/home_screen.dart';
 import 'package:ai_interview/screen/ui/interview_all_screens/interviewCallScreen.dart';
@@ -11,6 +11,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import '../../Service/auth_service.dart';
 
 import 'auth/login_screen.dart';
+import 'interview_all_screens/PracticeModeScreen.dart';
 
 class BottomNavScreen extends StatefulWidget {
   final UserModel? user; // ✅
@@ -38,7 +39,7 @@ class _BottomNavScreenState extends State<BottomNavScreen> {
     _screen = [
       HomeScreen(),
       ChatScreen(),
-      InterviewCallScreen(),
+      PracticeModeScreen(),
       HistoryScreen(),
       ProfileScreen(),
     ];
