@@ -14,8 +14,12 @@ import 'package:record/record.dart';
 import 'package:web_socket_channel/io.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 
+import '../../../Service/subscription_service.dart';
+import '../../../ads/ad_service.dart';
+import '../../../models/Subscription.dart';
 import 'AvatarSelectionScreen.dart';
 import 'QuickSessionScreen.dart';
+import '../../../models/Subscription.dart'; // ← এখানে UsageModel আছে?
 
 // ── Only STT key stays in frontend ───────────────────────────────────────────
 // Groq & ElevenLabs keys এখন backend .env এ থাকবে
@@ -30,6 +34,9 @@ const String WebShokedbaseURL = "wss://b48f-103-99-182-5.ngrok-free.app/";
 
 const String _interviewWsUrl = '${ApiURL.WebShokedbaseURL}ws/interview';
 const String _ttsUrl         = '${ApiURL.baseURL}tts';
+
+var _usage;
+
 
 // ── Design Tokens ─────────────────────────────────────────────────────────────
 const _bgDeep      = Color(0xFF080810);
@@ -131,6 +138,7 @@ class _InterviewCallScreenState extends State<InterviewCallScreen>
   late AnimationController _fadeInCtrl;
   late Animation<double>    _fadeInAnim;
 
+
   // ─────────────────────────────────────────────────────────────────────────
   // Init / Dispose
   // ─────────────────────────────────────────────────────────────────────────
@@ -149,6 +157,7 @@ class _InterviewCallScreenState extends State<InterviewCallScreen>
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       await _connectInterviewWs(); // backend WS → first question আসবে
       await _initAssemblyAI();     // STT ready
+      await _loadUsage();
     });
   }
 
@@ -194,6 +203,7 @@ class _InterviewCallScreenState extends State<InterviewCallScreen>
     _audioPlayer.dispose();
     _stopAssemblyAI();
     _closeInterviewWs();
+    AdService.dispose();
     super.dispose();
   }
 
@@ -621,7 +631,14 @@ class _InterviewCallScreenState extends State<InterviewCallScreen>
     return '$m:$s';
   }
 
-  void _showSessionCompleteDialog() {
+  void _showSessionCompleteDialog() async{
+    if (!mounted) return;
+
+    // Free plan → interview শেষে interstitial দেখাও
+    await AdService.showInterstitialAd(
+      showAds: _usage?.showAds ?? true,
+    );
+
     if (!mounted) return;
     showDialog(
       context           : context,
@@ -1270,7 +1287,17 @@ class _InterviewCallScreenState extends State<InterviewCallScreen>
                   const SizedBox(width: 10),
                   Expanded(
                     child: GestureDetector(
-                      onTap: () {Navigator.pop(context); Navigator.pop(context);},
+                      onTap: () async {
+                        Navigator.pop(context); // dialog বন্ধ
+
+                        // Free plan → manually end করলেও ad দেখাও
+                        await AdService.showInterstitialAd(
+                          showAds: _usage?.showAds ?? true,
+                        );
+
+                        if (!mounted) return;
+                        Navigator.pop(context); // interview screen বন্ধ
+                      },
                       child: Container(
                         padding   : const EdgeInsets.symmetric(vertical: 13),
                         decoration: BoxDecoration(
@@ -1296,6 +1323,19 @@ class _InterviewCallScreenState extends State<InterviewCallScreen>
       ),
     );
   }
+
+
+  Future<void> _loadUsage() async {
+    try {
+      final usage = await SubscriptionService.getUsage();
+      setState(() => _usage = usage);
+      // Free plan → interstitial preload করে রাখো
+      if (usage.showAds) {
+        await AdService.loadInterstitialAd();
+      }
+    } catch (_) {}
+  }
+
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

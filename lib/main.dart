@@ -2,6 +2,7 @@ import 'package:device_preview/device_preview.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
+import 'ads/ad_service.dart';
 import 'app.dart';
 import 'network/network_called.dart';
 
@@ -17,11 +18,12 @@ import 'network/network_called.dart';
 }*/
 
 
-void main(){
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized(); // ← সবার আগে
   NetworkCaller.init();
+  await AdService.initialize();
   runApp(MyApp());
 }
-
 
 
 

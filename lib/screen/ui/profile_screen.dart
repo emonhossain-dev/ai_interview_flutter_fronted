@@ -17,8 +17,9 @@ import 'package:file_picker/file_picker.dart';
 import 'package:dio/dio.dart';
 
 import '../../utils/DeviceIdService.dart';
+import '../../utils/ImageHelper.dart';
 import '../../utils/ImagePickerHelper.dart';
-import 'Proflie_Menu_Drawer/Pricing_Screen.dart';
+import 'Billing_Screen/Pricing_Screen.dart';
 import 'Proflie_Menu_Drawer/TermsAndConditionsScreen.dart';
 import 'Proflie_Menu_Drawer/about_app.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -70,6 +71,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   // ── Colors ────────────────────────────────────────────────
   final Color _green = const Color(0xFF2ECC8F);
+
 
 
 
@@ -383,7 +385,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (_) => const PricingPage(),
+                      builder: (_) => const PricingScreen(),
                     ),
                   );
 
@@ -633,7 +635,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   : (userModel?.profilePic != null &&
                   userModel!.profilePic!.isNotEmpty &&
                   userModel!.profilePic != "null")
-                  ? NetworkImage(ApiURL.baseURL + userModel!.profilePic!)
+              // ✅ ImageHelper use করো
+                  ? NetworkImage(ImageHelper.getProfileImageUrl(userModel!.profilePic))
                   : null,
               child: (_selectedImage == null &&
                   (userModel?.profilePic == null ||
@@ -1066,8 +1069,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (user == null) return;
 
     userModel = user;
-    _nameController.text = user.name;
-    _phoneController.text = user.mobile;
+    _nameController.text = user.name!;
+    _phoneController.text = user.mobile!;
 
     _resumes.clear();
     if (user.resume != null && user.resume!.title != null) {

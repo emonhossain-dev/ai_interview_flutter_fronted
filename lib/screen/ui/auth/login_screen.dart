@@ -1,14 +1,12 @@
 import 'package:ai_interview/Service/auth_service.dart';
+import 'package:ai_interview/models/UserModel.dart';
 import 'package:ai_interview/network/Api_URL.dart';
-import 'package:ai_interview/screen/ui/auth/email_verify.dart';
 import 'package:ai_interview/screen/ui/auth/password_forget/email_send_otp.dart';
-import 'package:ai_interview/screen/ui/auth/password_forget/otp_verify.dart';
 import 'package:ai_interview/screen/ui/auth/sign_up_screen.dart';
 import 'package:ai_interview/screen/ui/bottom_nav.dart';
 import 'package:ai_interview/utils/pathclass.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:google_sign_in/google_sign_in.dart';
 
 import '../../../Service/google_auth_service.dart';
 import '../../../network/network_called.dart';
@@ -27,43 +25,60 @@ class _SignInScreenState extends State<SignInScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
 
-  final GoogleAuthService _auth = GoogleAuthService();
-  final GoogleSignIn signIn = GoogleSignIn.instance;
+  // ✅ একটাই instance
+  final GoogleAuthService _googleAuth = GoogleAuthService();
 
-  /*Future<void> _handleGoogleSignIn() async {
-    try {
-      await GoogleSignIn.instance.initialize(clientId: null);
-      await GoogleSignIn.instance.authenticate();
-      login();
-      debugPrint('Google Sign In successful');
-    } catch (e) {
-      debugPrint('Google Sign In Error: $e');
+  // ✅ Google Sign-In
+  void _googleLogin() async {
+    showLoadingDialog(context);
+
+    final result = await _googleAuth.signIn();
+
+    if (!mounted) return;
+    hideLoadingDialog(context);
+
+    if (result != null) {
+      debugPrint("✅ Google Login Success: $result");
+      _handleLoginSuccess(result);
+    } else {
+      debugPrint("❌ Google Login Failed");
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Google Sign-In failed. Please try again."),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
-  }*/
-
-
-  void login() async {
-    final user = await _auth.signIn();
-
-    if (user != null) {
-      print("Name: ${user.displayName}");
-      print("Email: ${user.email}");
-
-      await sendTokenToBackend(user);
-    }
   }
 
-  void logout() async {
-    await _auth.signOut();
+  // ✅ Login success হলে navigate করো
+  void _handleLoginSuccess(Map<String, dynamic> data) {
+    final accessToken = data["access_token"];
+    final refreshToken = data["refresh_token"];
+    final rawUser = data["user"] as Map<String, dynamic>? ?? {};
+
+    AuthService.setLoggedIn(true, refreshToken);
+    AuthService.saveAccessToken(accessToken);
+
+    final safeUser = {
+      "id": rawUser["id"],
+      "email": rawUser["email"],
+      "name": rawUser["name"],
+      "mobile": rawUser["mobile"],
+      "is_verified": rawUser["is_verified"] ?? false,
+      "auth_provider": rawUser["auth_provider"],
+      "profile_pic": rawUser["profile_pic"],
+      "created_at": rawUser["created_at"],
+      "updated_at": rawUser["updated_at"],
+    };
+
+    AuthService.setUser(UserModel.fromJson(safeUser)); // ✅ fromJson use করো
+
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (_) => const BottomNavScreen()),
+    );
   }
-
-  @override
-  void initState() {
-    super.initState();
-    _auth.initGoogle(); // 👈 এখানে use করবে
-  }
-
-
 
   @override
   void dispose() {
@@ -82,16 +97,13 @@ class _SignInScreenState extends State<SignInScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 24),
             child: Column(
               children: [
-
                 const SizedBox(height: 48),
 
                 Align(
                   alignment: Alignment.topLeft,
                   child: Column(
-                    mainAxisAlignment: MainAxisAlignment.start,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // ── Welcome text ──
                       const Text(
                         'Welcome Back 👋',
                         style: TextStyle(
@@ -100,7 +112,6 @@ class _SignInScreenState extends State<SignInScreen> {
                           fontWeight: FontWeight.w700,
                         ),
                       ),
-
                       const Text(
                         'Login to continue your interview practice',
                         style: TextStyle(
@@ -108,18 +119,11 @@ class _SignInScreenState extends State<SignInScreen> {
                           fontSize: 13,
                         ),
                       ),
-
                     ],
-
                   ),
-
                 ),
 
                 const SizedBox(height: 32),
-
-
-
-                // ── Illustration ──
 
                 Image.asset(
                   Pathclass.ic_logo_Path,
@@ -128,7 +132,6 @@ class _SignInScreenState extends State<SignInScreen> {
 
                 const SizedBox(height: 32),
 
-                // ── Email field ──
                 _InputField(
                   controller: _emailController,
                   hint: 'Email address',
@@ -138,7 +141,6 @@ class _SignInScreenState extends State<SignInScreen> {
 
                 const SizedBox(height: 14),
 
-                // ── Password field ──
                 _InputField(
                   controller: _passwordController,
                   hint: 'Password',
@@ -159,15 +161,14 @@ class _SignInScreenState extends State<SignInScreen> {
 
                 const SizedBox(height: 10),
 
-                // ── Forgot password ──
                 Align(
                   alignment: Alignment.centerRight,
                   child: TextButton(
                     onPressed: () {
-                      debugPrint("Okay");
                       Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (context) => const Email_Send_OTP()),
+                        MaterialPageRoute(
+                            builder: (context) => const Email_Send_OTP()),
                       );
                     },
                     style: TextButton.styleFrom(
@@ -192,11 +193,7 @@ class _SignInScreenState extends State<SignInScreen> {
                   width: double.infinity,
                   height: 52,
                   child: ElevatedButton(
-                    onPressed: () {
-
-                      _loginAPIcall();
-
-                    },
+                    onPressed: _loginAPIcall,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFFFF6B35),
                       foregroundColor: Colors.white,
@@ -221,58 +218,54 @@ class _SignInScreenState extends State<SignInScreen> {
                 const Row(
                   children: [
                     Expanded(
-                      child: Divider(color: Color(0xFFDDDDDD), thickness: 1),
-                    ),
+                        child:
+                        Divider(color: Color(0xFFDDDDDD), thickness: 1)),
                     Padding(
                       padding: EdgeInsets.symmetric(horizontal: 12),
-                      child: Text(
-                        'or',
-                        style: TextStyle(
-                          color: Color(0xFF999999),
-                          fontSize: 13,
-                        ),
-                      ),
+                      child: Text('or',
+                          style: TextStyle(
+                              color: Color(0xFF999999), fontSize: 13)),
                     ),
                     Expanded(
-                      child: Divider(color: Color(0xFFDDDDDD), thickness: 1),
-                    ),
+                        child:
+                        Divider(color: Color(0xFFDDDDDD), thickness: 1)),
                   ],
                 ),
 
                 const SizedBox(height: 20),
 
                 // ── Google button ──
-                OutlinedButton(
-                  onPressed: (){
-                    debugPrint("Test");
-                    login();
-                    },
-                  style: OutlinedButton.styleFrom(
-                    side: const BorderSide(color: Color(0xFFDDDDDD)),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(30),
-                    ),
-                    backgroundColor: Colors.white,
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      // Google G icon manually
-
-
-                      SvgPicture.asset(Pathclass.ic_google_logo_Path, height: 30,width: 30,),
-
-
-                      const SizedBox(width: 24),
-                      const Text(
-                        'Continue with Google',
-                        style: TextStyle(
-                          color: Color(0xFF333333),
-                          fontSize: 15,
-                          fontWeight: FontWeight.w500,
-                        ),
+                SizedBox(
+                  width: double.infinity,
+                  height: 52,
+                  child: OutlinedButton(
+                    onPressed: _googleLogin, // ✅ fixed
+                    style: OutlinedButton.styleFrom(
+                      side: const BorderSide(color: Color(0xFFDDDDDD)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(30),
                       ),
-                    ],
+                      backgroundColor: Colors.white,
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        SvgPicture.asset(
+                          Pathclass.ic_google_logo_Path,
+                          height: 24,
+                          width: 24,
+                        ),
+                        const SizedBox(width: 12),
+                        const Text(
+                          'Continue with Google',
+                          style: TextStyle(
+                            color: Color(0xFF333333),
+                            fontSize: 15,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
 
@@ -284,22 +277,16 @@ class _SignInScreenState extends State<SignInScreen> {
                   children: [
                     const Text(
                       "Don't have an account? ",
-                      style: TextStyle(
-                        color: Color(0xFF888888),
-                        fontSize: 13,
-                      ),
+                      style:
+                      TextStyle(color: Color(0xFF888888), fontSize: 13),
                     ),
                     GestureDetector(
                       onTap: () {
-
                         Navigator.pushReplacement(
                           context,
                           MaterialPageRoute(
-                            builder: (_) => const SignUpScreen(),
-                          ),
+                              builder: (_) => const SignUpScreen()),
                         );
-
-
                       },
                       child: const Text(
                         'Sign Up',
@@ -322,8 +309,18 @@ class _SignInScreenState extends State<SignInScreen> {
     );
   }
 
-
-  Future<bool> _loginAPIcall() async {
+  Future<void> _loginAPIcall() async {
+    // ✅ Validation
+    if (_emailController.text.trim().isEmpty ||
+        _passwordController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Email and password cannot be empty"),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
 
     showLoadingDialog(context);
 
@@ -333,60 +330,29 @@ class _SignInScreenState extends State<SignInScreen> {
       {
         "email": _emailController.text.trim(),
         "password": _passwordController.text.trim(),
-        "device_id": deviceId
+        "device_id": deviceId,
       },
       requiresAuth: false,
     );
 
+    if (!mounted) return;
+    hideLoadingDialog(context);
+
     if (response.isSuccess && response.statusCode == 200) {
-
-      final data = response.responseData;
-
-      final accessToken = data["access_token"];
-      final refreshToken = data["refresh_token"];
-      final user = data["user"];
-
-      debugPrint("✅ Login Success");
-      debugPrint("Access Token: $accessToken");
-
-      // 🔥 SAVE TOKEN (IMPORTANT)
-
-      AuthService.setLoggedIn(true, refreshToken);
-      AuthService.saveAccessToken(accessToken);
-
-
-      // (optional) user info save
-      debugPrint("User ID: ${user["id"]}");
-      debugPrint("User Email: ${user["email"]}");
-      hideLoadingDialog(context); //
-
-      AuthService.setUser(user);
-
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (_) => const BottomNavScreen(),
-        ),
-      );
-
-      return true;
+      _handleLoginSuccess(response.responseData);
     } else {
       debugPrint("❌ ${response.errorMessage}");
-      hideLoadingDialog(context); //
-      return false;
-
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(response.errorMessage ?? "Login failed"),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
-
-
-
-
-
   }
-
-
 }
 
-// ── Reusable Input Field ───────────────────────────────────────────────────
+// ── Reusable Input Field ──────────────────────────────────────────────────
 class _InputField extends StatelessWidget {
   final TextEditingController controller;
   final String hint;
@@ -422,21 +388,13 @@ class _InputField extends StatelessWidget {
         controller: controller,
         obscureText: obscureText,
         keyboardType: keyboardType,
-        style: const TextStyle(
-          color: Color(0xFF333333),
-          fontSize: 14,
-        ),
+        style: const TextStyle(color: Color(0xFF333333), fontSize: 14),
         decoration: InputDecoration(
           hintText: hint,
-          hintStyle: const TextStyle(
-            color: Color(0xFFAAAAAA),
-            fontSize: 14,
-          ),
-          prefixIcon: Icon(
-            prefixIcon,
-            color: const Color(0xFFAAAAAA),
-            size: 20,
-          ),
+          hintStyle:
+          const TextStyle(color: Color(0xFFAAAAAA), fontSize: 14),
+          prefixIcon:
+          Icon(prefixIcon, color: const Color(0xFFAAAAAA), size: 20),
           suffixIcon: suffixIcon,
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(14),
@@ -444,10 +402,8 @@ class _InputField extends StatelessWidget {
           ),
           filled: true,
           fillColor: Colors.white,
-          contentPadding: const EdgeInsets.symmetric(
-            horizontal: 16,
-            vertical: 16,
-          ),
+          contentPadding:
+          const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
         ),
       ),
     );

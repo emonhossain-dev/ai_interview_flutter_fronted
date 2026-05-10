@@ -42,7 +42,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
   final _formKey = GlobalKey<FormState>();
 
-  Future<void> _handleGoogleSignUp() async {
+  /*Future<void> _handleGoogleSignUp() async {
     try {
       await GoogleSignIn.instance.initialize(clientId: null);
       await GoogleSignIn.instance.authenticate();
@@ -73,7 +73,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
     }
 
-  }
+  }*/
 
 
 
@@ -339,7 +339,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   SizedBox(
                     width: double.infinity,
                     height: 52,
-                    child: ElevatedButton(
+                   /* child: ElevatedButton(
                       onPressed: _handleSignUp,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFFFF6B35),
@@ -356,7 +356,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                           fontWeight: FontWeight.w600,
                         ),
                       ),
-                    ),
+                    ),*/
                   ),
 
                   const SizedBox(height: 20),
@@ -386,7 +386,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   const SizedBox(height: 20),
 
                   // ── Google Button ──
-                  OutlinedButton(
+                  /*OutlinedButton(
                     onPressed: _handleGoogleSignUp,
                     style: OutlinedButton.styleFrom(
                       side: const BorderSide(color: Color(0xFFDDDDDD)),
@@ -414,7 +414,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                         ),
                       ],
                     ),
-                  ),
+                  ),*/
 
                   const SizedBox(height: 24),
 

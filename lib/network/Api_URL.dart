@@ -1,11 +1,11 @@
 class ApiURL{
 
   // Base Path
-  static const String baseURL = "https://c546-103-99-181-58.ngrok-free.app/";
-  static const String WebShokedbaseURL = "wss://c546-103-99-181-58.ngrok-free.app/";
+  static const String baseURL = "https://55e4-103-99-181-58.ngrok-free.app/";
+  static const String WebShokedbaseURL = "wss://55e4-103-99-181-58.ngrok-free.app/";
 
   //chat shoked
-  static const String Chat_URL = "wss://c546-103-99-181-58.ngrok-free.app/ws/chat";
+  static const String Chat_URL = "wss://55e4-103-99-181-58.ngrok-free.app/ws/chat";
 
 
   // account managment
@@ -46,6 +46,17 @@ class ApiURL{
 
 
 //Update Api
+
+
+
+//Subscription Plan
+  static const String Plans          = '${baseURL}subscription/plans';
+  static const String MySubscription = '${baseURL}subscription/my';
+  static const String Subscribe      = '${baseURL}subscription/subscribe';
+  static const String CancelSub      = '${baseURL}subscription/cancel';
+  static const String PaymentConfirm = '${baseURL}subscription/payment/confirm';
+  static const String PaymentHistory = '${baseURL}subscription/payment/history';
+  static const String Usage          = '${baseURL}subscription/usage';
 
 
 }

@@ -62,6 +62,9 @@
     <key>NSPhotoLibraryUsageDescription</key>
     <string>This app needs gallery access</string>
 
+    <key>GADApplicationIdentifier</key>
+    <string>ca-app-pub-3940256099942544~1458002511</string>
+
 
 </dict>
 </plist>

@@ -7,6 +7,7 @@ import 'package:shimmer/shimmer.dart';
 import '../../Service/auth_service.dart';
 import '../../models/UserModel.dart';
 import '../../network/network_called.dart';
+import '../../utils/ImageHelper.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -41,7 +42,7 @@ class _HomeScreenState extends State<HomeScreen> {
         profilePic.isNotEmpty &&
         profilePic != "null";
 
-    final imageUrl = hasImage ? ApiURL.baseURL + profilePic! : null;
+    final imageUrl = hasImage ? ImageHelper.getProfileImageUrl(profilePic) : null;
 
 
     return Scaffold(

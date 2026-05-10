@@ -1,48 +1,92 @@
 import 'dart:convert';
 import 'package:ai_interview/network/Api_URL.dart';
+import 'package:ai_interview/utils/DeviceIdService.dart';
+import 'package:flutter/foundation.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:http/http.dart' as http;
 
 class GoogleAuthService {
-  final GoogleSignIn _googleSignIn = GoogleSignIn.instance;
+  static final GoogleAuthService _instance = GoogleAuthService._internal();
+  factory GoogleAuthService() => _instance;
+  GoogleAuthService._internal();
 
-  Future<void> initGoogle() async {
-    await _googleSignIn.initialize(
-      // যদি Firebase / Web না use করো তাহলে null রাখো
-      serverClientId: "1009889489171-do9ffjpnco5hrjbhhip5recpkua2s42e.apps.googleusercontent.com",
-    );
-  }
+  // ✅ v6 এ এভাবে initialize করতে হয়
+  final GoogleSignIn _googleSignIn = GoogleSignIn(
+    serverClientId: "1009889489171-0sjoi50tobnmu49q3jfrjgfvipnvubou.apps.googleusercontent.com",
+    scopes: ['email', 'profile'],
+  );
 
-  Future<GoogleSignInAccount?> signIn() async {
+  // ✅ Sign In
+  Future<Map<String, dynamic>?> signIn() async {
     try {
-      final user = await _googleSignIn.authenticate();
-      return user;
-    } catch (e) {
-      print("Google Sign-In Error: $e");
+      // Silent sign-in আগে try করো
+      GoogleSignInAccount? user = await _googleSignIn.signInSilently();
+
+      // Silent fail হলে normal sign-in
+      user ??= await _googleSignIn.signIn();
+
+      if (user == null) {
+        debugPrint("⚠️ User canceled sign-in");
+        return null;
+      }
+
+      debugPrint("✅ Google User: ${user.email}");
+      return await _sendTokenToBackend(user);
+
+    } catch (e, stackTrace) {
+      debugPrint("❌ Google Sign-In Error: $e");
+      debugPrint("StackTrace: $stackTrace");
       return null;
     }
   }
 
-  Future<void> signOut() async {
-    await _googleSignIn.disconnect();
+  // ✅ Backend এ token পাঠানো
+  Future<Map<String, dynamic>?> _sendTokenToBackend(
+      GoogleSignInAccount user) async {
+    try {
+      final auth = await user.authentication;
+      final idToken = auth.idToken;
+
+      if (idToken == null) {
+        debugPrint("❌ ID Token is null — serverClientId চেক করো");
+        return null;
+      }
+
+      final deviceId = await DeviceIdService.getDeviceId();
+
+      final response = await http.post(
+        Uri.parse(ApiURL.LoginWithGoogleURL),
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode({
+          "id_token": idToken,
+          "device_id": deviceId,
+          "email": user.email,
+          "name": user.displayName,
+          "profile_pic": user.photoUrl,
+        }),
+      );
+
+      debugPrint("📡 Response [${response.statusCode}]: ${response.body}");
+
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body) as Map<String, dynamic>;
+      } else {
+        debugPrint("❌ Backend Failed: ${response.body}");
+        return null;
+      }
+    } catch (e) {
+      debugPrint("❌ Backend Error: $e");
+      return null;
+    }
   }
-}
 
-
-Future<void> sendTokenToBackend(GoogleSignInAccount user) async {
-  final auth = await user.authentication;
-
-  final idToken = auth.idToken;
-
-  final response = await http.post(
-    Uri.parse(ApiURL.LoginWithGoogleURL),
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: jsonEncode({
-      "id_token": idToken,
-    }),
-  );
-
-  print(response.body);
+  // ✅ Sign Out
+  Future<void> signOut() async {
+    try {
+      await _googleSignIn.disconnect();
+      debugPrint("✅ Sign-Out successful");
+    } catch (e) {
+      debugPrint("❌ Sign-Out Error: $e");
+    }
+  }
 }
